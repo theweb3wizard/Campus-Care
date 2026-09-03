@@ -26,8 +26,8 @@ export default async function AdminDashboardPage() {
   const totalStudents = students.length;
 
   return (
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-7">
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
         <div>
           <h1 className="text-heading-2">Administration</h1>
           <p className="text-body mt-1">Manage staff, roles, and clinic settings.</p>

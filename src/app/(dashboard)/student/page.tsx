@@ -120,7 +120,7 @@ export default async function StudentDashboardPage() {
   const firstName = s?.full_name?.split(' ')[0] ?? 'there';
 
   return (
-    <div className="p-4 md:p-6 max-w-2xl space-y-5">
+    <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-5">
       {/* Greeting */}
       <div>
         <h1 className="text-heading-2">Hello, {firstName} 👋</h1>

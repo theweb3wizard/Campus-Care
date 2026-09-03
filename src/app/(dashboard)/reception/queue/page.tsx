@@ -25,9 +25,11 @@ export default async function ReceptionQueuePage() {
   const completed = entries.filter((e) => e.status === 'completed').length;
 
   return (
-    <div className="p-6">
-      <QueueSubscriber channel="reception-queue" />
-      <div className="flex items-start justify-between mb-7">
+    <div className="p-4 sm:p-6">
+      <QueueSubscriber channel="reception-queue-page" />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
         <div>
           <h1 className="text-heading-2">Today&apos;s Queue</h1>
           <p className="text-body mt-1">

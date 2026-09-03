@@ -88,7 +88,7 @@ export function CheckInPanel({ result, onReset }: Props) {
             {formatQueueNumber(checkedIn.queue_number)}
           </span>
         </div>
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
           <Button variant="outline" onClick={onReset}>
             Check in another patient
           </Button>

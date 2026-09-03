@@ -33,7 +33,7 @@ export default async function PharmacyDashboardPage() {
   const dispensedToday = 0; // would query by dispensed_at date in production
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <QueueSubscriber channel="pharmacy-dashboard" />
 
       <div className="mb-7">

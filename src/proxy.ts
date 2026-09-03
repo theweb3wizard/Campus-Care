@@ -32,9 +32,12 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
+  const hasEnv =
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
   // Public routes — redirect authenticated users to their home
   if (PUBLIC_ROUTES.some((r) => pathname.startsWith(r))) {
-    if (user) {
+    if (user && hasEnv) {
       // Fetch role to redirect correctly
       const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,10 +64,10 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Root route — redirect based on auth state
+  // Root route — render landing page for unauthenticated visitors, redirect logged-in users to their role home
   if (pathname === '/') {
-    if (!user) {
-      return NextResponse.redirect(new URL('/login', request.url));
+    if (!user || !hasEnv) {
+      return supabaseResponse;
     }
 
     const supabase = createServerClient(
@@ -89,7 +92,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(homeRoute, request.url));
     }
 
-    return NextResponse.redirect(new URL('/login', request.url));
+    return supabaseResponse;
   }
 
   // Protected routes — require auth + correct role
@@ -98,7 +101,7 @@ export async function proxy(request: NextRequest) {
   );
 
   if (matchedRoute) {
-    if (!user) {
+    if (!user || !hasEnv) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('next', pathname);
       return NextResponse.redirect(loginUrl);

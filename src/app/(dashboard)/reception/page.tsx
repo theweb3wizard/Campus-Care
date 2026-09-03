@@ -38,10 +38,10 @@ export default async function ReceptionDashboardPage() {
   const firstName = profile.full_name.split(' ')[0];
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <QueueSubscriber channel="reception-dashboard" />
       {/* Header */}
-      <div className="flex items-start justify-between mb-7">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
         <div>
           <h1 className="text-heading-2">Good morning, {firstName}</h1>
           <p className="text-body mt-1">

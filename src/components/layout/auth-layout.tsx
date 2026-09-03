@@ -42,13 +42,13 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-8">
+      <main className="flex-1 flex items-center justify-center px-4 py-6 md:py-8">
         <div className="w-full max-w-md">
           {/* Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 md:p-8">
             {/* Heading */}
-            <div className="mb-7">
-              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            <div className="mb-6 md:mb-7">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
                 {title}
               </h1>
               {subtitle && (

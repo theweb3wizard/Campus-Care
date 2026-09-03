@@ -17,7 +17,7 @@ export default async function DoctorQueuePage() {
   ).length;
 
   return (
-    <div className="p-6 max-w-3xl">
+    <div className="p-4 sm:p-6 max-w-3xl">
       <QueueSubscriber channel="doctor-queue-page" />
 
       <div className="flex items-center gap-3 mb-7">

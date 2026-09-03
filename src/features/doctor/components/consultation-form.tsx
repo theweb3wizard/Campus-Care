@@ -217,8 +217,8 @@ export function ConsultationForm({ visitId, queueEntryId, existing, onPrescribe 
           )}
         </button>
         {vitalsOpen && (
-          <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div className="col-span-2 md:col-span-1">
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="sm:col-span-2 md:col-span-1">
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Blood pressure
               </label>

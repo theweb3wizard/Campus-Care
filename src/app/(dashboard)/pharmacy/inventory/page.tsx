@@ -29,7 +29,7 @@ export default async function PharmacyInventoryPage() {
   const lowCount = items.filter((i) => i.status === 'low_stock').length;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-heading-2">Inventory</h1>
         <p className="text-body mt-1">

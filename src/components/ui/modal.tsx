@@ -70,7 +70,7 @@ export function Modal({
         aria-labelledby={title ? 'modal-title' : undefined}
         aria-describedby={description ? 'modal-description' : undefined}
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-xl animate-fade-in',
+          'relative w-full max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-xl animate-fade-in',
           sizeClasses[size]
         )}
       >

@@ -71,47 +71,49 @@ export function DoctorQueueList({ entries }: Props) {
           <div
             key={entry.id}
             className={cn(
-              'flex items-center gap-4 p-4 rounded-xl border transition-all',
+              'flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border transition-all',
               isInConsultation
                 ? 'border-violet-200 bg-violet-50/40'
                 : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm'
             )}
           >
-            {/* Queue number */}
-            <div className={cn(
-              'h-12 w-12 rounded-xl flex items-center justify-center font-bold text-lg font-mono shrink-0',
-              isInConsultation ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-700'
-            )}>
-              {formatQueueNumber(entry.queue_number)}
-            </div>
+            <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
+              {/* Queue number */}
+              <div className={cn(
+                'h-11 w-11 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center font-bold text-base sm:text-lg font-mono shrink-0',
+                isInConsultation ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-700'
+              )}>
+                {formatQueueNumber(entry.queue_number)}
+              </div>
 
-            {/* Patient info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-sm font-semibold text-slate-800">
-                  {entry.student.full_name}
-                </p>
-                <StatusBadge
-                  label={QUEUE_STATUS_LABELS[entry.status as QueueStatus]}
-                  colorClass={QUEUE_STATUS_COLORS[entry.status as QueueStatus]}
-                />
+              {/* Patient info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-slate-800">
+                    {entry.student.full_name}
+                  </p>
+                  <StatusBadge
+                    label={QUEUE_STATUS_LABELS[entry.status as QueueStatus]}
+                    colorClass={QUEUE_STATUS_COLORS[entry.status as QueueStatus]}
+                  />
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-slate-400 flex-wrap">
+                  <span className="font-mono">{entry.student.registration_number}</span>
+                  <span>·</span>
+                  <span>{entry.clinic_profile.file_number}</span>
+                  <span>·</span>
+                  <span>In at {formatTime(entry.visit.check_in_time)}</span>
+                </div>
+                {entry.clinic_profile.allergies && (
+                  <p className="text-xs text-rose-600 mt-1 font-medium">
+                    ⚠ Allergies: {entry.clinic_profile.allergies}
+                  </p>
+                )}
               </div>
-              <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
-                <span className="font-mono">{entry.student.registration_number}</span>
-                <span>·</span>
-                <span>{entry.clinic_profile.file_number}</span>
-                <span>·</span>
-                <span>In at {formatTime(entry.visit.check_in_time)}</span>
-              </div>
-              {entry.clinic_profile.allergies && (
-                <p className="text-xs text-rose-600 mt-1 font-medium">
-                  ⚠ Allergies: {entry.clinic_profile.allergies}
-                </p>
-              )}
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
               {isWaiting && (
                 <Button
                   variant="primary"

@@ -2,7 +2,7 @@
 
 /* ─── CampusCare Design Tokens ──────────────────────────────────────────────── */
 
-@theme inline {
+@theme {
   /* Brand palette — calm, professional, healthcare */
   --color-primary-50:  #eff6ff;
   --color-primary-100: #dbeafe;

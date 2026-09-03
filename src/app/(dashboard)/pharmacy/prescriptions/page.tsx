@@ -19,7 +19,7 @@ export default async function PharmacyPrescriptionsPage() {
   const prescriptions = await getPendingPrescriptions();
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Realtime — prescriptions appear as soon as doctor sends */}
       <QueueSubscriber channel="pharmacy-prescriptions" />
 

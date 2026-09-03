@@ -19,7 +19,7 @@ export default async function DoctorDashboardPage() {
   const firstName = profile.full_name.split(' ')[0];
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Realtime subscription — invisible, keeps queue live */}
       <QueueSubscriber channel="doctor-queue" />
 
