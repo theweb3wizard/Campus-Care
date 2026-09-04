@@ -55,8 +55,9 @@
   --color-danger-500: #f43f5e;
   --color-danger-600: #e11d48;
 
-  /* Typography */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* Typography — the Inter font face itself is loaded via next/font in layout.tsx,
+     which injects the authoritative --font-sans value; this is just the fallback stack. */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
 
   /* Radius */
@@ -121,6 +122,16 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-neutral-400);
+}
+
+/* Hides the scrollbar on horizontally-scrollable rows (e.g. mobile tab pills) while keeping them scrollable. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* ─── Typography Utilities ──────────────────────────────────────────────────── */
