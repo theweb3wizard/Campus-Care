@@ -6,6 +6,8 @@ import { EmptyState } from '@/components/feedback/empty-state';
 import { Bell } from 'lucide-react';
 import { timeAgo } from '@/lib/utils';
 import type { Notification } from '@/types/database';
+import { MarkAllReadButton } from '@/features/notifications/components/mark-all-read-button';
+import { QueueSubscriber } from '@/components/realtime/queue-subscriber';
 
 export const metadata: Metadata = { title: 'Notifications' };
 
@@ -34,25 +36,19 @@ export default async function StudentNotificationsPage() {
   const notifications = (data ?? []) as Notification[];
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  // Mark all as read (fire and forget)
-  if (unreadCount > 0) {
-    supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('profile_id', user.id)
-      .eq('is_read', false)
-      .then(() => {});
-  }
-
   return (
     <div className="p-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-heading-2">Notifications</h1>
-        <p className="text-body mt-1">
-          {unreadCount > 0
-            ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
-            : 'All caught up.'}
-        </p>
+      <QueueSubscriber channel="student-notifications" />
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-heading-2">Notifications</h1>
+          <p className="text-body mt-1">
+            {unreadCount > 0
+              ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
+              : 'All caught up.'}
+          </p>
+        </div>
+        {unreadCount > 0 && <MarkAllReadButton />}
       </div>
 
       <Card padding="none">

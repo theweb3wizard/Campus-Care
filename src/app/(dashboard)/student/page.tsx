@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Card } from '@/components/ui/card';
+import { QueueSubscriber } from '@/components/realtime/queue-subscriber';
 import { StatusBadge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/feedback/empty-state';
 import {
@@ -121,16 +122,25 @@ export default async function StudentDashboardPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-5">
+      <QueueSubscriber channel="student-dashboard" />
       {/* Greeting */}
-      <div>
-        <h1 className="text-heading-2">Hello, {firstName} 👋</h1>
-        <p className="text-body mt-1">
-          {new Date().toLocaleDateString('en-NG', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-heading-2">Hello, {firstName} 👋</h1>
+          <p className="text-body mt-1">
+            {new Date().toLocaleDateString('en-NG', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
+        </div>
+        <Link
+          href="/emergency"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-rose-600 text-white text-sm font-bold hover:bg-rose-700 transition-colors"
+        >
+          SOS Emergency
+        </Link>
       </div>
 
       {/* ── Active visit card ── */}

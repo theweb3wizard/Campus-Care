@@ -162,6 +162,16 @@ export function LoginForm() {
           Get started
         </Link>
       </p>
+
+      <p className="text-sm text-center text-slate-500">
+        Forgot password?{' '}
+        <Link
+          href="/forgot-password"
+          className="text-blue-600 font-medium hover:underline"
+        >
+          Reset it
+        </Link>
+      </p>
     </form>
   );
 }

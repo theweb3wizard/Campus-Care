@@ -93,20 +93,23 @@ function VerifyStep({
     resolver: zodResolver(studentVerificationSchema),
   });
 
-  const onSubmit = async (data: StudentVerificationInput) => {
+  const onSubmit = async (formData: StudentVerificationInput) => {
     setServerError(null);
     const supabase = createClient();
 
-    const reg = data.registration_number.toUpperCase().trim();
-    const email = data.institutional_email.toLowerCase().trim();
+    const reg = formData.registration_number.toUpperCase().trim();
+    const email = formData.institutional_email.toLowerCase().trim();
 
-    // Check existence and claimed status — no sensitive columns selected
-    const { data: student, error } = await supabase
-      .from('students')
-      .select('full_name, is_claimed')
-      .eq('registration_number', reg)
-      .eq('institutional_email', email)
-      .maybeSingle();
+    // Check existence via secure RPC — works for anonymous users,
+    // returns only name + claimed flag, no sensitive data.
+    const { data: rpcData, error } = await supabase.rpc('verify_student', {
+      p_reg: reg,
+      p_email: email,
+    });
+
+    const student = (
+      Array.isArray(rpcData) ? rpcData[0] : rpcData
+    ) as unknown as { full_name: string; is_claimed: boolean } | null;
 
     if (error || !student) {
       setServerError(
@@ -405,7 +408,7 @@ function CompleteStep() {
           Sign in now
         </Button>
         <p className="text-xs text-slate-400">
-          If you don&apos;t see a confirmation email, check your spam folder.
+          You can now sign in with your email and new password.
         </p>
       </div>
     </div>

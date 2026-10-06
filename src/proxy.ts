@@ -5,7 +5,7 @@ import type { UserRole } from '@/types/roles';
 import { ROLE_HOME_ROUTES } from '@/lib/constants';
 
 // Routes accessible without authentication
-const PUBLIC_ROUTES = ['/login', '/onboarding'];
+const PUBLIC_ROUTES = ['/login', '/onboarding', '/forgot-password', '/reset-password', '/emergency'];
 
 // Route prefix → required role(s)
 const PROTECTED_ROUTES: { prefix: string; roles: UserRole[] }[] = [

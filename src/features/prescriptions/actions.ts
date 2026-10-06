@@ -118,6 +118,20 @@ export async function addPrescriptionItem(
   await requireRole('doctor', 'admin');
   const supabase = await createClient();
 
+  const dosage = item.dosage?.trim() ?? '';
+  const frequency = item.frequency?.trim() ?? '';
+  const qty = Number(item.quantity_prescribed);
+
+  if (!dosage || !frequency) {
+    return { success: false, error: 'Dosage and frequency are required.' };
+  }
+  if (!Number.isInteger(qty) || qty <= 0 || qty > 1000) {
+    return { success: false, error: 'Quantity must be between 1 and 1000.' };
+  }
+  if (!item.medication_id) {
+    return { success: false, error: 'Choose a drug first.' };
+  }
+
   const { data, error } = await supabase
     .from('prescription_items')
     .insert({
@@ -158,7 +172,7 @@ export async function removePrescriptionItem(
   return { success: true };
 }
 
-// ─── Finalize prescription (mark ready for pharmacy) ─────────────────────────
+// ─── Finalize prescription (one atomic RPC: rx + visit + queue together) ──────
 
 export async function finalizePrescription(
   prescriptionId: string,
@@ -169,29 +183,16 @@ export async function finalizePrescription(
   await requireRole('doctor', 'admin');
   const supabase = await createClient();
 
-  const now = new Date().toISOString();
+  const { data, error } = await supabase.rpc('finalize_prescription', {
+    p_prescription_id: prescriptionId,
+    p_visit_id: visitId,
+    p_queue_entry_id: queueEntryId,
+    p_notes: notes || null,
+  });
 
-  const [rxRes, visitRes, queueRes] = await Promise.all([
-    supabase
-      .from('prescriptions')
-      .update({ status: 'ready', notes: notes || null })
-      .eq('id', prescriptionId),
-    supabase
-      .from('visits')
-      .update({ status: 'awaiting_pharmacy' })
-      .eq('id', visitId),
-    supabase
-      .from('queue_entries')
-      .update({ status: 'completed', completed_at: now })
-      .eq('id', queueEntryId),
-  ]);
-
-  if (rxRes.error || visitRes.error || queueRes.error) {
-    return {
-      success: false,
-      error: rxRes.error?.message ?? visitRes.error?.message ?? queueRes.error?.message,
-    };
-  }
+  if (error) return { success: false, error: error.message };
+  const result = data as { success: boolean; error?: string } | null;
+  if (!result?.success) return { success: false, error: result?.error ?? 'Could not send to pharmacy.' };
 
   // Notify student their prescription is ready
   const { data: visit } = await supabase

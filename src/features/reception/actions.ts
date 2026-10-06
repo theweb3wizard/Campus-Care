@@ -29,14 +29,16 @@ export async function searchStudents(
 
   if (!query || query.trim().length < 2) return [];
 
-  const term = query.trim();
+  // Strip PostgREST filter specials so "a,b(c)" can't break the query
+  const term = query.trim().replace(/[,()"%;\\]/g, '').slice(0, 40);
+  if (term.length < 2) return [];
 
   // Search by registration number (exact prefix) or name (ilike)
   const { data, error } = await supabase
     .from('students')
-    .select('*')
+    .select('id, full_name, registration_number, department, faculty')
     .or(
-      `registration_number.ilike.%${term}%,full_name.ilike.%${term}%,institutional_email.ilike.%${term}%`
+      `registration_number.ilike.%${term}%,full_name.ilike.%${term}%`
     )
     .order('full_name')
     .limit(10);
@@ -178,7 +180,7 @@ export async function upsertClinicProfile(
   }
 }
 
-// ─── Walk-in check-in ─────────────────────────────────────────────────────────
+// ─── Walk-in check-in (one atomic RPC: visit + queue together) ────────────────
 
 export async function walkInCheckIn(
   studentId: string,
@@ -188,66 +190,31 @@ export async function walkInCheckIn(
   const profile = await requireRole('receptionist', 'admin');
   const supabase = await createClient();
 
-  const today = new Date().toISOString().split('T')[0];
+  // Single transaction in Postgres — no orphan visits, no duplicate numbers
+  const { data: rpcData, error: rpcError } = await supabase.rpc('check_in_student', {
+    p_student_id: studentId,
+    p_clinic_profile_id: clinicProfileId,
+    p_checked_in_by: profile.id,
+    p_notes: notes || null,
+  });
 
-  // Prevent duplicate active visit on same day
-  const { data: existingVisit } = await supabase
-    .from('visits')
-    .select('id, status')
-    .eq('student_id', studentId)
-    .eq('visit_date', today)
-    .not('status', 'in', '("completed","cancelled","no_show")')
-    .maybeSingle();
+  const result = rpcData as { success: boolean; error?: string; visit_id?: string; queue_entry_id?: string; queue_number?: number } | null;
 
-  if (existingVisit) {
-    return {
-      success: false,
-      error: 'This student already has an active visit today.',
-    };
+  if (rpcError || !result?.success) {
+    return { success: false, error: result?.error ?? rpcError?.message ?? 'Check-in failed. Please try again.' };
   }
 
-  // Create visit
-  const { data: visit, error: visitError } = await supabase
-    .from('visits')
-    .insert({
-      student_id: studentId,
-      clinic_profile_id: clinicProfileId,
-      checked_in_by: profile.id,
-      status: 'queued',
-      visit_date: today,
-      notes: notes || null,
-    })
-    .select()
-    .single();
+  // Fetch rows for the success ticket
+  const [{ data: visit }, { data: queueEntry }] = await Promise.all([
+    supabase.from('visits').select('*').eq('id', result.visit_id!).single(),
+    supabase.from('queue_entries').select('*').eq('id', result.queue_entry_id!).single(),
+  ]);
 
-  if (visitError || !visit) {
-    return { success: false, error: visitError?.message ?? 'Failed to create visit.' };
+  if (!visit || !queueEntry) {
+    return { success: false, error: 'Checked in, but could not load the ticket. See the queue.' };
   }
 
-  // Get next queue number for today
-  const { data: queueNumData } = await supabase.rpc('get_next_queue_number');
-  const queueNumber = (queueNumData as number) ?? 1;
-
-  // Create queue entry
-  const { data: queueEntry, error: queueError } = await supabase
-    .from('queue_entries')
-    .insert({
-      visit_id: visit.id,
-      clinic_profile_id: clinicProfileId,
-      queue_number: queueNumber,
-      queue_date: today,
-      status: 'waiting',
-    })
-    .select()
-    .single();
-
-  if (queueError || !queueEntry) {
-    // Rollback visit if queue entry fails
-    await supabase.from('visits').delete().eq('id', visit.id);
-    return { success: false, error: queueError?.message ?? 'Failed to add to queue.' };
-  }
-
-  // Fire notification (non-blocking) — need student's profile_id
+  // Fire notification (non-blocking, best-effort)
   const { data: studentRecord } = await supabase
     .from('students')
     .select('profile_id')
@@ -263,7 +230,7 @@ export async function walkInCheckIn(
   if (studentRecord?.profile_id) {
     notifyCheckIn(
       studentRecord.profile_id,
-      queueNumber,
+      result.queue_number!,
       clinicProfileRecord?.file_number ?? ''
     );
   }
@@ -273,7 +240,7 @@ export async function walkInCheckIn(
     data: {
       visit: visit as Visit,
       queue_entry: queueEntry as QueueEntry,
-      queue_number: queueNumber,
+      queue_number: result.queue_number!,
     },
   };
 }
@@ -324,7 +291,8 @@ export async function getTodaysQueue(): Promise<QueueEntryWithStudent[]> {
       )
     `)
     .eq('queue_date', today)
-    .order('queue_number');
+    .order('queue_number')
+    .limit(100);
 
   if (error || !data) return [];
 
@@ -356,7 +324,16 @@ export async function getTodaysQueue(): Promise<QueueEntryWithStudent[]> {
   }));
 }
 
-// ─── Update queue entry status ────────────────────────────────────────────────
+// ─── Update queue entry status (grandma-safe: only allowed moves) ─────────────
+
+const ALLOWED_QUEUE_STATUSES = ['waiting', 'called', 'in_consultation', 'completed', 'cancelled', 'skipped'] as const;
+type AllowedQueueStatus = (typeof ALLOWED_QUEUE_STATUSES)[number];
+
+const QUEUE_TO_VISIT: Partial<Record<AllowedQueueStatus, string>> = {
+  in_consultation: 'in_consultation',
+  completed: 'completed',
+  cancelled: 'cancelled',
+};
 
 export async function updateQueueStatus(
   queueEntryId: string,
@@ -365,10 +342,15 @@ export async function updateQueueStatus(
   await requireRole('receptionist', 'admin', 'doctor');
   const supabase = await createClient();
 
-  const updates: Record<string, string | null> = { status };
-  if (status === 'called') updates.called_at = new Date().toISOString();
-  if (status === 'in_consultation') updates.consultation_started_at = new Date().toISOString();
-  if (status === 'completed') updates.completed_at = new Date().toISOString();
+  if (!(ALLOWED_QUEUE_STATUSES as readonly string[]).includes(status)) {
+    return { success: false, error: 'Invalid status.' };
+  }
+  const next = status as AllowedQueueStatus;
+
+  const updates: Record<string, string | null> = { status: next };
+  if (next === 'called') updates.called_at = new Date().toISOString();
+  if (next === 'in_consultation') updates.consultation_started_at = new Date().toISOString();
+  if (next === 'completed') updates.completed_at = new Date().toISOString();
 
   const { error } = await supabase
     .from('queue_entries')
@@ -376,6 +358,19 @@ export async function updateQueueStatus(
     .eq('id', queueEntryId);
 
   if (error) return { success: false, error: error.message };
+
+  // Keep visit in sync so queue and visit never diverge
+  const visitStatus = QUEUE_TO_VISIT[next];
+  if (visitStatus) {
+    const { data: entry } = await supabase
+      .from('queue_entries')
+      .select('visit_id')
+      .eq('id', queueEntryId)
+      .single();
+    if (entry?.visit_id) {
+      await supabase.from('visits').update({ status: visitStatus }).eq('id', entry.visit_id);
+    }
+  }
 
   // Notify student when called
   if (status === 'called') {

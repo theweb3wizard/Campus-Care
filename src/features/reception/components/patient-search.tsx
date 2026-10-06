@@ -51,7 +51,7 @@ export function PatientSearch({ onSelect }: Props) {
     if (onSelect) {
       onSelect(result);
     } else {
-      router.push(`/reception/check-in?student=${result.student.id}`);
+      router.push(`/reception/check-in?student=${encodeURIComponent(result.student.registration_number)}`);
     }
   };
 

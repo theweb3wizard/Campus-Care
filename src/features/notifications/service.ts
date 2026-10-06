@@ -14,6 +14,7 @@ interface CreateNotificationInput {
 
 /**
  * Creates a notification for a user.
+ * Uses secure RPC so staff/system can notify a different student.
  * Always fire-and-forget — never throw, never block the calling action.
  */
 export async function createNotification(
@@ -21,14 +22,12 @@ export async function createNotification(
 ): Promise<void> {
   try {
     const supabase = await createClient();
-    await supabase.from('notifications').insert({
-      profile_id: input.profile_id,
-      type: input.type,
-      title: input.title,
-      message: input.message,
-      action_url: input.action_url ?? null,
-      metadata: input.metadata ?? null,
-      is_read: false,
+    await supabase.rpc('enqueue_notification', {
+      p_profile_id: input.profile_id,
+      p_type: input.type,
+      p_title: input.title,
+      p_message: input.message,
+      p_action_url: input.action_url ?? null,
     });
   } catch {
     // Notification failures must never break the main workflow
@@ -42,21 +41,8 @@ export async function createNotifications(
   inputs: CreateNotificationInput[]
 ): Promise<void> {
   if (inputs.length === 0) return;
-  try {
-    const supabase = await createClient();
-    await supabase.from('notifications').insert(
-      inputs.map((i) => ({
-        profile_id: i.profile_id,
-        type: i.type,
-        title: i.title,
-        message: i.message,
-        action_url: i.action_url ?? null,
-        metadata: i.metadata ?? null,
-        is_read: false,
-      }))
-    );
-  } catch {
-    // Silent — never block
+  for (const input of inputs.slice(0, 20)) {
+    await createNotification(input);
   }
 }
 

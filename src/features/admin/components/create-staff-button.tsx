@@ -3,10 +3,10 @@
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Copy, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { createStaffSchema, type CreateStaffInput } from '@/lib/validations/staff';
+import { createStaffAccount } from '@/features/admin/actions';
 import { STAFF_ROLES, USER_ROLES } from '@/types/roles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,8 +19,11 @@ import type { UserRole } from '@/types/roles';
 export function CreateStaffButton() {
   const [open, setOpen] = React.useState(false);
   const [serverError, setServerError] = React.useState<string | null>(null);
+  const [newPassword, setNewPassword] = React.useState<string | null>(null);
+  const [newEmail, setNewEmail] = React.useState('');
+  const [copied, setCopied] = React.useState(false);
   const router = useRouter();
-  const { success, error: toastError } = useToast();
+  const { success } = useToast();
 
   const {
     register,
@@ -38,55 +41,27 @@ export function CreateStaffButton() {
 
   const onSubmit = async (data: CreateStaffInput) => {
     setServerError(null);
-    const supabase = createClient();
+    setNewPassword(null);
 
-    // Use Supabase admin invite — creates auth user + sends invite email
-    // In production this requires service role. For MVP we use signUp with
-    // a temporary password and rely on the email confirmation flow.
-    const tempPassword = `CampusCare@${Math.random().toString(36).slice(2, 10)}!`;
-
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    const res = await createStaffAccount({
+      full_name: data.full_name.trim(),
       email: data.email.trim().toLowerCase(),
-      password: tempPassword,
-      options: {
-        data: {
-          full_name: data.full_name.trim(),
-          role: data.role,
-        },
-      },
+      role: data.role,
+      department: data.department,
+      employee_id: data.employee_id,
+      specialization: data.specialization,
     });
 
-    if (signUpError) {
-      if (signUpError.message.toLowerCase().includes('already registered')) {
-        setServerError('A user with this email already exists.');
-      } else {
-        setServerError(signUpError.message);
-      }
+    if (!res.success) {
+      setServerError(res.error ?? 'Failed to create staff.');
       return;
     }
 
-    if (!authData.user) {
-      setServerError('Account creation failed. Please try again.');
-      return;
-    }
-
-    // Create staff_profile record
-    if (data.department || data.specialization || data.employee_id) {
-      await supabase.from('staff_profiles').insert({
-        profile_id: authData.user.id,
-        employee_id: data.employee_id || null,
-        department: data.department || null,
-        specialization: data.specialization || null,
-        is_active: true,
-      });
-    }
-
-    success(
-      'Staff member created',
-      `${data.full_name} has been added as ${USER_ROLES[data.role as UserRole]}.`
-    );
+    // Show login once — admin tells them in person (no email needed)
+    setNewEmail(data.email.trim().toLowerCase());
+    setNewPassword(res.tempPassword ?? '');
+    success('Staff member created', `${data.full_name} can now sign in.`);
     reset();
-    setOpen(false);
     router.refresh();
   };
 
@@ -94,6 +69,18 @@ export function CreateStaffButton() {
     setOpen(false);
     reset();
     setServerError(null);
+    setNewPassword(null);
+    setCopied(false);
+  };
+
+  const handleCopy = async () => {
+    if (!newPassword) return;
+    try {
+      await navigator.clipboard.writeText(`Email: ${newEmail}  Password: ${newPassword}`);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
   };
 
   return (
@@ -111,10 +98,28 @@ export function CreateStaffButton() {
         open={open}
         onClose={handleClose}
         title="Add staff member"
-        description="Create a new staff account. They will receive an email to confirm their account."
+        description="Create a staff login. Tell them the password in person — they can change it later."
         size="md"
       >
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        {newPassword ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <p className="text-sm font-semibold text-emerald-800 mb-1">Account ready — copy once</p>
+              <p className="text-sm text-slate-700">Email: <code className="font-mono">{newEmail}</code></p>
+              <p className="text-sm text-slate-700">Password: <code className="font-mono font-bold">{newPassword}</code></p>
+              <p className="text-xs text-slate-500 mt-2">You won&apos;t see this again. Share it with them now.</p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" size="sm" leftIcon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} onClick={handleCopy}>
+                {copied ? 'Copied' : 'Copy login'}
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleClose}>
+                Done
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           {serverError && <InlineError message={serverError} />}
 
           <Input
@@ -183,6 +188,7 @@ export function CreateStaffButton() {
             </Button>
           </div>
         </form>
+        )}
       </Modal>
     </>
   );

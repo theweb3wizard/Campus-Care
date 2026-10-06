@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { requireRole } from '@/features/auth/actions';
 import { getStudentByRegNumber } from '@/features/reception/actions';
 import { Card } from '@/components/ui/card';
-import { CheckInPanel } from '@/features/reception/components/check-in-panel';
+import { CheckInPreloaded } from '@/features/reception/components/check-in-preloaded';
 import { PatientSearchWrapper } from '@/features/reception/components/patient-search-wrapper';
 
 export const metadata: Metadata = { title: 'Walk-in Check-in' };
@@ -31,10 +31,7 @@ export default async function WalkInCheckInPage({ searchParams }: Props) {
 
       <Card>
         {preloaded ? (
-          <CheckInPanel
-            result={preloaded}
-            onReset={() => {}}
-          />
+          <CheckInPreloaded result={preloaded} />
         ) : (
           <PatientSearchWrapper />
         )}

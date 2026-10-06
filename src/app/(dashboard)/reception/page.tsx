@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { requireRole } from '@/features/auth/actions';
 import { createClient } from '@/lib/supabase/server';
 import { getTodaysQueue } from '@/features/reception/actions';
+import { getOpenEmergencies } from '@/features/emergency/actions';
+import { EmergencyBanner } from '@/features/emergency/components/emergency-banner';
 import { Card, StatCard } from '@/components/ui/card';
 import { QueueTable } from '@/features/reception/components/queue-table';
 import { PatientSearch } from '@/features/reception/components/patient-search';
@@ -18,12 +20,13 @@ export default async function ReceptionDashboardPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().split('T')[0];
 
-  const [visitsRes, entries] = await Promise.all([
+  const [visitsRes, entries, emergencies] = await Promise.all([
     supabase
       .from('visits')
       .select('id, status')
       .eq('visit_date', today),
     getTodaysQueue(),
+    getOpenEmergencies(),
   ]);
 
   const visits = visitsRes.data ?? [];
@@ -40,6 +43,7 @@ export default async function ReceptionDashboardPage() {
   return (
     <div className="p-4 sm:p-6">
       <QueueSubscriber channel="reception-dashboard" />
+      <EmergencyBanner initial={emergencies} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
         <div>

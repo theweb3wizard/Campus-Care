@@ -10,41 +10,71 @@ import type { InventoryStatus } from '@/types/database';
 export const metadata: Metadata = { title: 'Inventory' };
 export const revalidate = 0;
 
-export default async function PharmacyInventoryPage() {
+export default async function PharmacyInventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   await requireRole('pharmacist', 'admin');
   const supabase = await createClient();
+  const { q } = await searchParams;
+  const query = (q ?? '').trim().slice(0, 40);
 
-  const { data } = await supabase
+  let req = supabase
     .from('inventory_items')
     .select(`
       id, quantity_in_stock, low_stock_threshold, status,
       expiry_date, location, last_restocked_at,
       medications ( id, name, generic_name, unit, category )
     `)
-    .order('status')
-    .order('medications(name)');
+    .order('status');
 
-  const items = data ?? [];
+  const { data } = await req;
+  const all = (data ?? []) as unknown as Array<{
+    medications?: { name?: string; generic_name?: string } | Array<{ name?: string; generic_name?: string }>;
+  }>;
+  // Simple name filter in app (medication names are few, no extra index needed)
+  const filtered = query
+    ? all.filter((i) => {
+        const med = Array.isArray(i.medications) ? i.medications[0] : i.medications;
+        return `${med?.name ?? ''} ${med?.generic_name ?? ''}`.toLowerCase().includes(query.toLowerCase());
+      })
+    : all;
+  const items = filtered as unknown as NonNullable<typeof data>;
   const outCount = items.filter((i) => i.status === 'out_of_stock').length;
   const lowCount = items.filter((i) => i.status === 'low_stock').length;
 
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-6">
-        <h1 className="text-heading-2">Inventory</h1>
-        <p className="text-body mt-1">
-          {items.length} medications ·{' '}
-          {outCount > 0 && (
-            <span className="text-red-600 font-medium">{outCount} out of stock</span>
-          )}
-          {outCount > 0 && lowCount > 0 && ' · '}
-          {lowCount > 0 && (
-            <span className="text-amber-600 font-medium">{lowCount} low stock</span>
-          )}
-          {outCount === 0 && lowCount === 0 && (
-            <span className="text-emerald-600 font-medium">all levels healthy</span>
-          )}
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <h1 className="text-heading-2">Inventory</h1>
+            <p className="text-body mt-1">
+              {items.length} medications ·{' '}
+              {outCount > 0 && (
+                <span className="text-red-600 font-medium">{outCount} out of stock</span>
+              )}
+              {outCount > 0 && lowCount > 0 && ' · '}
+              {lowCount > 0 && (
+                <span className="text-amber-600 font-medium">{lowCount} low stock</span>
+              )}
+              {outCount === 0 && lowCount === 0 && (
+                <span className="text-emerald-600 font-medium">all levels healthy</span>
+              )}
+            </p>
+          </div>
+          <form action="/pharmacy/inventory" method="get" className="w-full sm:w-64">
+            <input
+              type="search"
+              name="q"
+              defaultValue={query}
+              placeholder="Search drug name…"
+              autoComplete="off"
+              className="input-base w-full py-2 text-sm"
+            />
+          </form>
+        </div>
       </div>
 
       <Card padding="none">

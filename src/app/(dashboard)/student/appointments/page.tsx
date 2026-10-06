@@ -6,9 +6,10 @@ import { EmptyState } from '@/components/feedback/empty-state';
 import { StatusBadge } from '@/components/ui/badge';
 import { CalendarDays } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
-import { VISIT_STATUS_LABELS, VISIT_STATUS_COLORS } from '@/lib/constants';
 import type { Appointment } from '@/types/database';
 import type { AppointmentStatus } from '@/types/database';
+import { BookAppointmentForm } from '@/features/appointments/components/book-appointment-form';
+import { CancelAppointmentButton } from '@/features/appointments/components/cancel-appointment-button';
 
 export const metadata: Metadata = { title: 'My Appointments' };
 
@@ -49,11 +50,15 @@ export default async function StudentAppointmentsPage() {
     : [];
 
   return (
-    <div className="p-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-heading-2">My Appointments</h1>
-        <p className="text-body mt-1">Your scheduled clinic appointments.</p>
+    <div className="p-6 max-w-2xl space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-heading-2">My Appointments</h1>
+          <p className="text-body mt-1">Book ahead or walk in — your choice.</p>
+        </div>
       </div>
+
+      <BookAppointmentForm />
 
       <Card padding="none">
         {appointments.length === 0 ? (
@@ -74,10 +79,15 @@ export default async function StudentAppointmentsPage() {
                     <p className="text-xs text-slate-500 mt-0.5">{appt.reason}</p>
                   )}
                 </div>
-                <StatusBadge
-                  label={APPT_STATUS_LABELS[appt.status as AppointmentStatus]}
-                  colorClass={APPT_STATUS_COLORS[appt.status as AppointmentStatus]}
-                />
+                <div className="flex items-center gap-2 shrink-0">
+                  <StatusBadge
+                    label={APPT_STATUS_LABELS[appt.status as AppointmentStatus]}
+                    colorClass={APPT_STATUS_COLORS[appt.status as AppointmentStatus]}
+                  />
+                  {appt.status === 'scheduled' && (
+                    <CancelAppointmentButton appointmentId={appt.id} />
+                  )}
+                </div>
               </div>
             ))}
           </div>

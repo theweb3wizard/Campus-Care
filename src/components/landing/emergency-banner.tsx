@@ -39,6 +39,13 @@ export function EmergencyBanner() {
                   <PhoneCall className="h-5 w-5 text-rose-600" />
                   <span>Call 0800-CAMPUS-CARE</span>
                 </a>
+                <a
+                  href="/emergency"
+                  className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl border-2 border-white/60 text-white font-bold text-base hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  <AlertOctagon className="h-5 w-5" />
+                  <span>Report online (no login)</span>
+                </a>
                 <div className="flex items-center gap-2 text-xs sm:text-sm text-rose-200">
                   <Ambulance className="h-4 w-4 shrink-0 text-white" />
                   <span>Campus Ambulance Standby 24 Hours</span>

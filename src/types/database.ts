@@ -67,6 +67,22 @@ export type NotificationType =
   | 'follow_up'
   | 'system';
 
+export type TestOrderStatus = 'ordered' | 'sampled' | 'ready' | 'cancelled';
+
+export interface TestOrder {
+  id: string;
+  visit_id: string;
+  clinic_profile_id: string;
+  test_type: string;
+  notes: string | null;
+  status: TestOrderStatus;
+  result_text: string | null;
+  resulted_by: string | null;
+  resulted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Table Row Types ──────────────────────────────────────────────────────────
 
 export interface Profile {

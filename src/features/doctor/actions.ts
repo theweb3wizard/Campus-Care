@@ -81,7 +81,8 @@ export async function getDoctorQueue(): Promise<DoctorQueueEntry[]> {
     .eq('queue_date', today)
     .or(`assigned_doctor_id.eq.${profile.id},assigned_doctor_id.is.null`)
     .not('status', 'in', '("cancelled","skipped")')
-    .order('queue_number');
+    .order('queue_number')
+    .limit(100);
 
   if (error || !data) return [];
 
@@ -118,75 +119,45 @@ export async function getDoctorQueue(): Promise<DoctorQueueEntry[]> {
   }));
 }
 
-// ─── Open a patient (start consultation) ─────────────────────────────────────
+// ─── Open a patient (start consultation — one atomic RPC) ─────────────────────
 
 export async function startConsultation(
   queueEntryId: string,
   visitId: string
 ): Promise<{ success: boolean; error?: string }> {
-  const profile = await requireRole('doctor', 'admin');
+  await requireRole('doctor', 'admin');
   const supabase = await createClient();
 
-  const now = new Date().toISOString();
+  const { data, error } = await supabase.rpc('start_consultation', {
+    p_queue_entry_id: queueEntryId,
+    p_visit_id: visitId,
+  });
 
-  const [queueRes, visitRes] = await Promise.all([
-    supabase
-      .from('queue_entries')
-      .update({
-        status: 'in_consultation',
-        consultation_started_at: now,
-        assigned_doctor_id: profile.id,
-      })
-      .eq('id', queueEntryId),
-    supabase
-      .from('visits')
-      .update({ status: 'in_consultation' })
-      .eq('id', visitId),
-  ]);
-
-  if (queueRes.error || visitRes.error) {
-    return {
-      success: false,
-      error: queueRes.error?.message ?? visitRes.error?.message,
-    };
-  }
+  if (error) return { success: false, error: error.message };
+  const result = data as { success: boolean; error?: string } | null;
+  if (!result?.success) return { success: false, error: result?.error ?? 'Could not start consultation.' };
 
   return { success: true };
 }
 
-// ─── Complete a consultation ──────────────────────────────────────────────────
+// ─── Complete a consultation (smart: pharmacy if drugs exist, else done) ─────
 
 export async function completeConsultation(
   queueEntryId: string,
   visitId: string,
-  hasPrescription: boolean
+  _hasPrescription?: boolean
 ): Promise<{ success: boolean; error?: string }> {
   await requireRole('doctor', 'admin');
   const supabase = await createClient();
 
-  const now = new Date().toISOString();
-  const visitStatus = hasPrescription ? 'awaiting_pharmacy' : 'completed';
+  const { data, error } = await supabase.rpc('complete_consultation', {
+    p_queue_entry_id: queueEntryId,
+    p_visit_id: visitId,
+  });
 
-  const [queueRes, visitRes] = await Promise.all([
-    supabase
-      .from('queue_entries')
-      .update({ status: 'completed', completed_at: now })
-      .eq('id', queueEntryId),
-    supabase
-      .from('visits')
-      .update({
-        status: visitStatus,
-        completion_time: hasPrescription ? null : now,
-      })
-      .eq('id', visitId),
-  ]);
-
-  if (queueRes.error || visitRes.error) {
-    return {
-      success: false,
-      error: queueRes.error?.message ?? visitRes.error?.message,
-    };
-  }
+  if (error) return { success: false, error: error.message };
+  const result = data as { success: boolean; error?: string } | null;
+  if (!result?.success) return { success: false, error: result?.error ?? 'Could not complete consultation.' };
 
   return { success: true };
 }
@@ -271,6 +242,17 @@ export async function saveMedicalRecord(
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   const profile = await requireRole('doctor', 'admin');
   const supabase = await createClient();
+
+  const complaint = data.complaint?.trim() ?? '';
+  const diagnosis = data.diagnosis?.trim() ?? '';
+
+  // Don't save an empty note
+  if (!complaint && !diagnosis) {
+    return { success: false, error: 'Write at least a complaint or a diagnosis.' };
+  }
+  if (complaint.length > 2000 || diagnosis.length > 2000) {
+    return { success: false, error: 'Note is too long. Keep it under 2000 characters.' };
+  }
 
   // Upsert — one medical record per visit
   const { data: existing } = await supabase

@@ -19,18 +19,22 @@ export default async function PharmacyDashboardPage() {
   await requireRole('pharmacist', 'admin');
   const supabase = await createClient();
 
-  const [prescriptions, inventoryRes] = await Promise.all([
+  const [prescriptions, inventoryRes, dispensedRes] = await Promise.all([
     getPendingPrescriptions(),
     supabase
       .from('inventory_items')
       .select('id, status, quantity_in_stock, low_stock_threshold, medications(name, unit)')
       .order('status'),
+    supabase
+      .from('prescriptions')
+      .select('id', { count: 'exact', head: true })
+      .gte('dispensed_at', new Date().toISOString().split('T')[0]),
   ]);
 
   const inventory = inventoryRes.data ?? [];
   const lowStockItems = inventory.filter((i) => i.status === 'low_stock' || i.status === 'out_of_stock');
   const outOfStockCount = inventory.filter((i) => i.status === 'out_of_stock').length;
-  const dispensedToday = 0; // would query by dispensed_at date in production
+  const dispensedToday = dispensedRes.count ?? 0;
 
   return (
     <div className="p-4 sm:p-6">
@@ -63,8 +67,8 @@ export default async function PharmacyDashboardPage() {
           icon={<Package className="h-5 w-5" />}
         />
         <StatCard
-          label="Total medications"
-          value={inventory.length}
+          label="Dispensed today"
+          value={dispensedToday}
           icon={<CheckCircle2 className="h-5 w-5" />}
         />
       </div>

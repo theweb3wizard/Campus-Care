@@ -130,16 +130,38 @@ export function QueueTable({ entries, showActions = true }: Props) {
                 {/* Action */}
                 {showActions && (
                   <td className="px-4 py-3.5 text-right">
-                    {next && !isDone ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        loading={isUpdating}
-                        onClick={() => handleStatusUpdate(entry.id, next.status)}
-                      >
-                        {next.label}
-                      </Button>
-                    ) : null}
+                    <div className="flex justify-end gap-2">
+                      {next && !isDone ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          loading={isUpdating}
+                          onClick={() => handleStatusUpdate(entry.id, next.status)}
+                        >
+                          {next.label}
+                        </Button>
+                      ) : null}
+                      {!isDone && (entry.status === 'waiting' || entry.status === 'called') ? (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isUpdating}
+                            onClick={() => handleStatusUpdate(entry.id, 'skipped')}
+                          >
+                            Skip
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={isUpdating}
+                            onClick={() => handleStatusUpdate(entry.id, 'cancelled')}
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
                   </td>
                 )}
               </tr>

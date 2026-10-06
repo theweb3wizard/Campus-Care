@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Card, StatCard } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/badge';
 import { VisitTrendChart } from '@/features/management/components/visit-trend-chart';
+import { ExportCsvButton } from '@/features/management/components/export-csv-button';
 import { INVENTORY_STATUS_LABELS, INVENTORY_STATUS_COLORS } from '@/lib/constants';
 import { TrendingUp, Pill, Package, Users, Activity } from 'lucide-react';
 import type { InventoryStatus } from '@/types/database';
@@ -58,11 +59,14 @@ export default async function ManagementAnalyticsPage() {
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="mb-7">
-        <h1 className="text-heading-2">Analytics</h1>
-        <p className="text-body mt-1">
-          Operational metrics — aggregated, no identifiable patient data.
-        </p>
+      <div className="mb-7 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-heading-2">Analytics</h1>
+          <p className="text-body mt-1">
+            Operational metrics — aggregated, no identifiable patient data.
+          </p>
+        </div>
+        <ExportCsvButton trend={trend} breakdown={Object.fromEntries(rxStatusMap)} />
       </div>
 
       {/* Summary stats */}

@@ -4,7 +4,12 @@ import Link from 'next/link';
 import { requireRole } from '@/features/auth/actions';
 import { getVisitDetail, getPatientHistory } from '@/features/doctor/actions';
 import { getMedications, getPrescriptionByVisit } from '@/features/prescriptions/actions';
+import { getVisitTests } from '@/features/lab/actions';
+import { getActivePregnancy } from '@/features/maternity/actions';
+import { getLatestQuestionnaire } from '@/features/questionnaire/actions';
+import { QUESTIONS } from '@/features/questionnaire/questions';
 import { ConsultationForm } from '@/features/doctor/components/consultation-form';
+import { TestOrdersCard } from '@/features/lab/components/test-orders-card';
 import { PatientSummary } from '@/features/doctor/components/patient-summary';
 import { PrescriptionComposer } from '@/features/prescriptions/components/prescription-composer';
 import { Card } from '@/components/ui/card';
@@ -27,10 +32,11 @@ export default async function ConsultationPage({ searchParams }: Props) {
 
   if (!visitId) redirect('/doctor/queue');
 
-  const [visitDetail, medications, existingPrescription] = await Promise.all([
+  const [visitDetail, medications, existingPrescription, testOrders] = await Promise.all([
     getVisitDetail(visitId),
     getMedications(),
     getPrescriptionByVisit(visitId),
+    getVisitTests(visitId),
   ]);
 
   if (!visitDetail) redirect('/doctor/queue');
@@ -39,6 +45,9 @@ export default async function ConsultationPage({ searchParams }: Props) {
   const patientHistory = clinicProfileId
     ? await getPatientHistory(clinicProfileId)
     : [];
+  const [pregnancy, questionnaire] = clinicProfileId
+    ? await Promise.all([getActivePregnancy(clinicProfileId), getLatestQuestionnaire(clinicProfileId)])
+    : [null, null];
 
   const queueEntry = visitDetail.queue_entries?.[0];
   const medicalRecord = visitDetail.medical_records?.[0] ?? null;
@@ -99,6 +108,37 @@ export default async function ConsultationPage({ searchParams }: Props) {
 
         {/* Right: Consultation + Prescription */}
         <div className="lg:col-span-2 space-y-5">
+          {/* Pregnancy banner */}
+          {pregnancy && (
+            <div className="flex items-start gap-3 p-4 bg-pink-50 border border-pink-200 rounded-xl">
+              <div>
+                <p className="text-sm font-semibold text-pink-800">
+                  Pregnant — EDD {pregnancy.edd}
+                </p>
+                {pregnancy.notes && (
+                  <p className="text-xs text-pink-600 mt-0.5">{pregnancy.notes}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Patient's own answers */}
+          {questionnaire && Object.keys(questionnaire).length > 0 && (
+            <Card>
+              <h2 className="text-base font-semibold text-slate-800 mb-3">
+                Patient answers
+              </h2>
+              <div className="space-y-2">
+                {QUESTIONS.filter((q) => questionnaire[q.key]).map((q) => (
+                  <div key={q.key} className="text-sm">
+                    <span className="text-slate-400">{q.label} </span>
+                    <span className="font-medium text-slate-700">{questionnaire[q.key]}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {/* Consultation notes */}
           <Card>
             <h2 className="text-base font-semibold text-slate-800 mb-5">
@@ -121,6 +161,18 @@ export default async function ConsultationPage({ searchParams }: Props) {
               existingPrescriptionId={existingPrescription?.id ?? null}
               existingItems={existingItems}
               existingStatus={existingPrescription?.status}
+            />
+          </Card>
+
+          {/* Lab test orders */}
+          <Card>
+            <h2 className="text-base font-semibold text-slate-800 mb-5">
+              Lab tests
+            </h2>
+            <TestOrdersCard
+              visitId={visitId}
+              clinicProfileId={clinicProfileId ?? ''}
+              initial={testOrders}
             />
           </Card>
         </div>

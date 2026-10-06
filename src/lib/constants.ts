@@ -20,6 +20,8 @@ export const ROUTES = {
   home: '/',
   login: '/login',
   onboarding: '/onboarding',
+  forgotPassword: '/forgot-password',
+  resetPassword: '/reset-password',
   student: {
     dashboard: '/student',
     profile: '/student/profile',
