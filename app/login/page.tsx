@@ -55,7 +55,7 @@ export default function LoginPage() {
           <input
             required
             autoComplete="username"
-            placeholder="e.g. FUD/2024/001"
+            placeholder="e.g. FCO/CSC/24/1001"
             value={id}
             onChange={(e) => setId(e.target.value)}
             className="h-12 min-h-[48px] rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base"

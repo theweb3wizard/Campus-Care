@@ -287,7 +287,7 @@ export function ReceptionClient({
             <input
               value={cardInput}
               onChange={(e) => setCardInput(e.target.value)}
-              placeholder="Card number, e.g. FUD/2024/0042"
+              placeholder="Card number, e.g. FCO/24/0042"
               aria-label="Card number"
               className="h-12 min-h-[48px] flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base"
             />

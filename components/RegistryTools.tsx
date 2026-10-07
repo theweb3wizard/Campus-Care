@@ -98,7 +98,7 @@ export function RegistryTools({ openSignup }: { openSignup: boolean }) {
           value={csv}
           onChange={(e) => setCsv(e.target.value)}
           rows={4}
-          placeholder={"FUD/2024/001,Amina Bello,Science,Computer Science"}
+          placeholder={"FCO/CSC/24/1001,Amina Bello,Computing,Computer Science"}
           className="mt-2 w-full rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-base"
         />
         <button type="button" onClick={importStudents} disabled={busy} className="mt-2 flex h-12 min-h-[48px] items-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)] disabled:opacity-60">

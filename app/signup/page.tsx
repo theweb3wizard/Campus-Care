@@ -144,7 +144,7 @@ export default function SignupPage() {
           <input
             required
             autoComplete="username"
-            placeholder={mode === "student" ? "e.g. FUD/2024/001" : "e.g. FUD/ST/014"}
+            placeholder={mode === "student" ? "e.g. FCO/CSC/24/1001" : "e.g. FUD/ST/014"}
             value={id}
             onChange={(e) => setId(e.target.value)}
             className={input}

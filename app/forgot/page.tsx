@@ -54,7 +54,7 @@ export default function ForgotPage() {
             required
             value={id}
             onChange={(e) => setId(e.target.value)}
-            placeholder="e.g. FUD/2024/001"
+            placeholder="e.g. FCO/CSC/24/1001"
             className="h-12 min-h-[48px] rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base"
           />
         </label>
