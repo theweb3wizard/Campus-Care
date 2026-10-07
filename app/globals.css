@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Public Sans", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Archivo", "Public Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-slip: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-primary: #0f766e;
+  --color-navy: #1e3a5f;
+  --color-gold: #9a7b2e;
+  --color-bg: #f7f9f8;
+
+  --radius-xl: 1rem;
+}
+
+:root {
+  --background: #f7f9f8;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --foreground: #0f172a;
+  --muted-foreground: #475569;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #1e3a5f;
+  --secondary-foreground: #ffffff;
+  --accent: #f5e8c7;
+  --accent-foreground: #1e3a5f;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0f766e;
+  --success-bg: #d1fae5;
+  --success-fg: #065f46;
+  --warning-bg: #fef3c7;
+  --warning-fg: #92400e;
+  --destructive-bg: #fee2e2;
+  --destructive-fg: #991b1b;
+  --info-bg: #e0f2fe;
+  --info-fg: #0c4a6e;
+}
+
+.dark {
+  --background: #0b1518;
+  --card: #132227;
+  --popover: #132227;
+  --foreground: #e8f0f1;
+  --muted-foreground: #a7b9be;
+  --primary: #2dd4bf;
+  --primary-foreground: #06201c;
+  --secondary: #bfcdde;
+  --secondary-foreground: #0b1518;
+  --accent: #2a2111;
+  --accent-foreground: #e3c878;
+  --border: #26414a;
+  --input: #26414a;
+  --ring: #2dd4bf;
+  --success-bg: #0b2720;
+  --success-fg: #6ee7b7;
+  --warning-bg: #2a2111;
+  --warning-fg: #fcd34d;
+  --destructive-bg: #2e1515;
+  --destructive-fg: #fca5a5;
+  --info-bg: #0c2233;
+  --info-fg: #7dd3fc;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-sans);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.font-slip {
+  font-family: var(--font-slip);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
