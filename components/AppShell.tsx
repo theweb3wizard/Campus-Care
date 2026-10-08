@@ -1,8 +1,36 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Phone } from "lucide-react";
 import { ClinicLogo } from "./ClinicLogo";
 import { BottomNav } from "./BottomNav";
+import { UserMenu } from "./UserMenu";
 import { brand, navItems } from "@/lib/brand";
+import { getSessionUser, createClient } from "@/lib/supabase/server";
+
+async function HeaderSession() {
+  const user = await getSessionUser();
+  if (!user) return <UserMenu user={null} />;
+  let headerUser: { full_name: string; role: string; login_id: string } | null = null;
+  try {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name,role,login_id")
+      .eq("id", user.id)
+      .single();
+    const p = profile as { full_name?: string; role?: string; login_id?: string } | null;
+    if (p) {
+      headerUser = {
+        full_name: p.full_name ?? "Staff",
+        role: p.role ?? "patient",
+        login_id: p.login_id ?? "",
+      };
+    }
+  } catch {
+    headerUser = null;
+  }
+  return <UserMenu user={headerUser} />;
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -12,14 +40,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
 
       <header className="print-hidden sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--card)]">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4">
-          <Link href="/" className="flex items-center gap-2.5" aria-label="Campus Care home">
+        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-2 px-4">
+          <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Campus Care home">
             <ClinicLogo size={32} />
-            <span className="leading-tight">
-              <span className="font-display block text-lg font-bold tracking-tight">
+            <span className="min-w-0 leading-tight">
+              <span className="font-display block truncate text-lg font-bold tracking-tight">
                 {brand.name}
               </span>
-              <span className="block text-xs text-[var(--muted-foreground)]">
+              <span className="hidden truncate text-xs text-[var(--muted-foreground)] sm:block">
                 {brand.subtitle} · {brand.tagline}
               </span>
             </span>
@@ -30,23 +58,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex min-h-[44px] items-center rounded-[10px] px-3 text-sm font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                className="flex min-h-[44px] items-center whitespace-nowrap rounded-[10px] px-3 text-sm font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
               >
                 {item.label}
               </Link>
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="flex h-12 min-h-[48px] items-center rounded-full border border-[var(--border)] px-5 text-base font-semibold"
+          <div className="flex shrink-0 items-center gap-2">
+            <Suspense
+              fallback={
+                <Link
+                  href="/login"
+                  className="flex h-11 min-h-[44px] items-center whitespace-nowrap rounded-full border border-[var(--border)] px-4 text-sm font-semibold sm:h-12 sm:px-5 sm:text-base"
+                >
+                  Log in
+                </Link>
+              }
             >
-              Log in
-            </Link>
+              <HeaderSession />
+            </Suspense>
             <Link
               href="/emergency"
-              className="flex h-12 min-h-[48px] items-center gap-2 rounded-full bg-[var(--emergency)] px-5 text-base font-semibold text-white hover:bg-[var(--emergency-hover)]"
+              className="flex h-11 min-h-[44px] items-center gap-2 whitespace-nowrap rounded-full bg-[var(--emergency)] px-4 text-sm font-semibold text-white hover:bg-[var(--emergency-hover)] sm:h-12 sm:px-5 sm:text-base"
             >
               <Phone size={20} aria-hidden />
               {brand.emergencyLabel}

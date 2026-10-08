@@ -4,7 +4,8 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { DoctorQueue } from "@/components/DoctorQueue";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
-import { StaffNav, StaffGate } from "@/components/StaffNav";
+import { StaffGate } from "@/components/StaffNav";
+import { StaffShell } from "@/components/StaffShell";
 
 export const instant = false;
 
@@ -36,8 +37,9 @@ async function QueueContent() {
   }
 
   const supabase = await createClient();
-  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: me } = await supabase.from("profiles").select("role,full_name").eq("id", user.id).single();
   const role = (me as { role?: string } | null)?.role;
+  const userName = (me as { full_name?: string } | null)?.full_name ?? "";
   if (!role || !["doctor", "nurse", "receptionist", "admin"].includes(role)) {
     return <StaffGate message="Doctor queue is staff only. Your role cannot open it." loginNext="/doctor" />;
   }
@@ -73,11 +75,8 @@ async function QueueContent() {
   }));
 
   return (
-    <>
-      <StaffNav role={role} />
-      <div className="mt-4">
-        <DoctorQueue initial={items} />
-      </div>
-    </>
+    <StaffShell role={role} userName={userName}>
+      <DoctorQueue initial={items} />
+    </StaffShell>
   );
 }

@@ -6,7 +6,8 @@ import { RegistryTools } from "@/components/RegistryTools";
 import { ClinicSettingsForm } from "@/components/ClinicSettingsForm";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
-import { StaffNav, StaffGate } from "@/components/StaffNav";
+import { StaffGate } from "@/components/StaffNav";
+import { StaffShell } from "@/components/StaffShell";
 import Link from "next/link";
 
 export const instant = false;
@@ -32,10 +33,11 @@ async function AdminContent() {
   const user = await getSessionUser();
   if (!user) return <StaffGate message="Admin only. Log in first." loginNext="/admin" />;
   const supabase = await createClient();
-  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: me } = await supabase.from("profiles").select("role,full_name").eq("id", user.id).single();
   if ((me as { role?: string } | null)?.role !== "admin") {
     return <StaffGate message="Admin only. Ask an admin to grant you access." loginNext="/admin" />;
   }
+  const userName = (me as { full_name?: string } | null)?.full_name ?? "";
 
   const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
@@ -62,19 +64,20 @@ async function AdminContent() {
   for (const s of (allSettings ?? []) as { key: string; value: string }[]) settingsMap[s.key] = s.value;
 
   return (
-    <div className="flex flex-col gap-6">
-      <StaffNav role="admin" />
-      <p>
-        <Link href="/admin/audit" className="inline-flex min-h-[44px] items-center text-sm font-semibold underline">Open audit log</Link>
-      </p>
-      <ClinicSettingsForm initial={settingsMap} />
-      <RegistryTools openSignup={openSignup} />
-      <div>
-        <h2 className="font-display text-lg font-semibold">Roles and doctors</h2>
-        <div className="mt-2">
-          <StaffManager initial={rows} />
+    <StaffShell role="admin" userName={userName}>
+      <div className="flex flex-col gap-6">
+        <p>
+          <Link href="/admin/audit" className="inline-flex min-h-[44px] items-center text-sm font-semibold underline">Open audit log</Link>
+        </p>
+        <ClinicSettingsForm initial={settingsMap} />
+        <RegistryTools openSignup={openSignup} />
+        <div>
+          <h2 className="font-display text-lg font-semibold">Roles and doctors</h2>
+          <div className="mt-2">
+            <StaffManager initial={rows} />
+          </div>
         </div>
       </div>
-    </div>
+    </StaffShell>
   );
 }

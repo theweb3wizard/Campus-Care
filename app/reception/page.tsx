@@ -5,7 +5,8 @@ import { ReceptionClient } from "@/components/ReceptionClient";
 import { demoDoctors } from "@/lib/booking";
 import { QueryError } from "@/components/QueryError";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
-import { StaffNav, StaffGate } from "@/components/StaffNav";
+import { StaffGate } from "@/components/StaffNav";
+import { StaffShell } from "@/components/StaffShell";
 
 export const instant = false;
 
@@ -39,8 +40,9 @@ async function ReceptionContent() {
   const user = await getSessionUser();
   if (!user) return <StaffGate message="Reception is staff only. Log in first." loginNext="/reception" />;
   const supabase = await createClient();
-  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: me } = await supabase.from("profiles").select("role,full_name").eq("id", user.id).single();
   const role = (me as { role?: string } | null)?.role;
+  const userName = (me as { full_name?: string } | null)?.full_name ?? "";
   if (!role || !["receptionist", "admin", "doctor", "nurse"].includes(role)) {
     return <StaffGate message="Reception staff only. Your role cannot open it." loginNext="/reception" />;
   }
@@ -77,22 +79,18 @@ async function ReceptionContent() {
 
   if (doctors.length === 0) {
     return (
-      <>
-        <StaffNav role={role} />
-        <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--muted-foreground)]">
+      <StaffShell role={role} userName={userName}>
+        <p className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--muted-foreground)]">
           No active doctors. Ask an admin to add doctors before booking for patients.
         </p>
         <ReceptionClient doctors={doctors} initialQueue={queue} />
-      </>
+      </StaffShell>
     );
   }
 
   return (
-    <>
-      <StaffNav role={role} />
-      <div className="mt-4">
-        <ReceptionClient doctors={doctors} initialQueue={queue} />
-      </div>
-    </>
+    <StaffShell role={role} userName={userName}>
+      <ReceptionClient doctors={doctors} initialQueue={queue} />
+    </StaffShell>
   );
 }

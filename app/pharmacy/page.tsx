@@ -5,7 +5,8 @@ import { PharmacyQueue } from "@/components/PharmacyQueue";
 import { MedicineStock } from "@/components/MedicineStock";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
-import { StaffNav, StaffGate } from "@/components/StaffNav";
+import { StaffGate } from "@/components/StaffNav";
+import { StaffShell } from "@/components/StaffShell";
 
 export const instant = false;
 
@@ -33,8 +34,9 @@ async function PharmacyContent() {
   if (!user) return <StaffGate message="Pharmacy is staff only. Log in first." loginNext="/pharmacy" />;
 
   const supabase = await createClient();
-  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: me } = await supabase.from("profiles").select("role,full_name").eq("id", user.id).single();
   const role = (me as { role?: string } | null)?.role;
+  const userName = (me as { full_name?: string } | null)?.full_name ?? "";
   if (!role || !["pharmacy", "doctor", "nurse", "admin"].includes(role)) {
     return <StaffGate message="Pharmacy staff only. Your role cannot open it." loginNext="/pharmacy" />;
   }
@@ -76,20 +78,21 @@ async function PharmacyContent() {
   if (allMedsError) return <QueryError />;
 
   return (
-    <div className="flex flex-col gap-6">
-      <StaffNav role={role} />
-      <section>
-        <h2 className="font-display text-lg font-semibold">To dispense</h2>
-        <div className="mt-2">
-          <PharmacyQueue initial={withStock} />
-        </div>
-      </section>
-      <section>
-        <h2 className="font-display text-lg font-semibold">Stock</h2>
-        <div className="mt-2">
-          <MedicineStock initial={(allMeds ?? []) as { id: string; name: string; stock_qty: number; unit: string }[]} />
-        </div>
-      </section>
-    </div>
+    <StaffShell role={role} userName={userName}>
+      <div className="flex flex-col gap-6">
+        <section>
+          <h2 className="font-display text-lg font-semibold">To dispense</h2>
+          <div className="mt-2">
+            <PharmacyQueue initial={withStock} />
+          </div>
+        </section>
+        <section>
+          <h2 className="font-display text-lg font-semibold">Stock</h2>
+          <div className="mt-2">
+            <MedicineStock initial={(allMeds ?? []) as { id: string; name: string; stock_qty: number; unit: string }[]} />
+          </div>
+        </section>
+      </div>
+    </StaffShell>
   );
 }

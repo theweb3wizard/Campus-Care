@@ -4,7 +4,8 @@ import { connection } from "next/server";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { NoticesSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
-import { StaffGate, StaffNav } from "@/components/StaffNav";
+import { StaffGate } from "@/components/StaffNav";
+import { StaffShell } from "@/components/StaffShell";
 
 export const instant = false;
 
@@ -29,10 +30,11 @@ async function AuditContent() {
   const user = await getSessionUser();
   if (!user) return <StaffGate message="Audit log is admin only. Log in first." loginNext="/admin/audit" />;
   const supabase = await createClient();
-  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: me } = await supabase.from("profiles").select("role,full_name").eq("id", user.id).single();
   if ((me as { role?: string } | null)?.role !== "admin") {
     return <StaffGate message="Audit log is admin only." loginNext="/admin/audit" />;
   }
+  const userName = (me as { full_name?: string } | null)?.full_name ?? "";
   const { data, error: listError } = await supabase
     .from("audit_logs")
     .select("id,action,resource_type,resource_id,created_at,profiles!audit_logs_profile_id_fkey(full_name)")
@@ -41,16 +43,15 @@ async function AuditContent() {
   if (listError) return <QueryError />;
   const rows = (data ?? []) as unknown as { id: string; action: string; resource_type: string; resource_id: string; created_at: string; profiles: { full_name: string } | null }[];
   if (rows.length === 0) return (
-    <div>
+    <StaffShell role="admin" userName={userName}>
       <p role="status" className="text-[var(--muted-foreground)]">Empty. Actions appear here as staff work.</p>
       <p className="mt-3 text-sm"><Link href="/admin" className="font-semibold underline">Back to admin</Link></p>
-    </div>
+    </StaffShell>
   );
   return (
-    <>
-    <StaffNav role="admin" />
-    <p className="mt-4 text-sm"><Link href="/admin" className="inline-flex min-h-[44px] items-center font-semibold underline">Back to admin</Link></p>
-    <ul className="mt-2 flex flex-col gap-2">
+    <StaffShell role="admin" userName={userName}>
+      <p className="text-sm"><Link href="/admin" className="inline-flex min-h-[44px] items-center font-semibold underline">Back to admin</Link></p>
+      <ul className="mt-2 flex flex-col gap-2">
       {rows.map((r) => (
         <li key={r.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 text-sm">
           <strong>{r.action}</strong>
@@ -59,6 +60,6 @@ async function AuditContent() {
         </li>
       ))}
     </ul>
-    </>
+    </StaffShell>
   );
 }

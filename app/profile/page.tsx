@@ -6,6 +6,8 @@ import { ProfileForm } from "@/components/ProfileForm";
 import { StatusPill } from "@/components/StatusPill";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
+import { LogoutButton } from "@/components/UserMenu";
+import { staffGroupsFor } from "@/lib/staff";
 
 export const instant = false;
 
@@ -103,39 +105,37 @@ async function ProfileContent({ welcome }: { welcome: boolean }) {
         ) : null}
       </dl>
       {p.role === "patient" ? null : (
-        <StaffLinks role={p.role} />
+        <StaffHub role={p.role} />
       )}
       {p.role === "patient" ? <PatientLinks /> : null}
       <ProfileForm initial={{ id: p.id, login_id: p.login_id, role: p.role, full_name: p.full_name, card_number: p.card_number, phone: p.phone, verified: p.verified }} />
+      <div className="mt-4">
+        <LogoutButton />
+      </div>
     </>
   );
 }
 
-function StaffLinks({ role }: { role: string }) {
-  const can = (roles: readonly string[]) => (roles as readonly string[]).includes(role);
+function StaffHub({ role }: { role: string }) {
+  const groups = staffGroupsFor(role);
   return (
-    <nav aria-label="Staff" className="mt-4 flex flex-wrap gap-2 text-sm font-semibold">
-      {can(["doctor", "nurse", "receptionist", "admin"]) ? (
-        <>
-          <Link href="/doctor" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Queue</Link>
-          <Link href="/reception" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Reception</Link>
-        </>
-      ) : null}
-      {can(["lab", "doctor", "nurse", "admin"]) ? (
-        <Link href="/lab" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Lab</Link>
-      ) : null}
-      {can(["pharmacy", "doctor", "nurse", "admin"]) ? (
-        <Link href="/pharmacy" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Pharmacy</Link>
-      ) : null}
-      {can(["doctor", "nurse", "receptionist", "admin"]) ? (
-        <Link href="/emergency/requests" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Emergencies</Link>
-      ) : null}
-      <Link href="/reports" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Reports</Link>
-      {role === "admin" ? (
-        <Link href="/admin" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Admin</Link>
-      ) : null}
-      <Link href="/notifications" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Alerts</Link>
-    </nav>
+    <div className="mt-4 flex flex-col gap-4">
+      {groups.map((g) => (
+        <section key={g.title} aria-label={`Staff ${g.title}`}>
+          <h2 className="text-xs font-bold uppercase tracking-wide text-[var(--muted-foreground)]">{g.title}</h2>
+          <ul className="mt-1 flex flex-col gap-2">
+            {g.links.map((l) => (
+              <li key={l.href}>
+                <Link href={l.href} className="flex min-h-[56px] flex-col justify-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2">
+                  <span className="text-base font-semibold leading-tight">{l.label}</span>
+                  <span className="text-sm leading-tight text-[var(--muted-foreground)]">{l.desc}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
   );
 }
 

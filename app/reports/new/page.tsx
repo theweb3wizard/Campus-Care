@@ -4,12 +4,13 @@ import { connection } from "next/server";
 import { getSessionUser, createClient } from "@/lib/supabase/server";
 import { ReportForm } from "@/components/ReportForm";
 import { StaffGate } from "@/components/StaffNav";
+import { StaffShell } from "@/components/StaffShell";
 
 export const instant = false;
 
 export default async function NewReportPage() {
   return (
-    <div className="mx-auto w-full max-w-md">
+    <div className="mx-auto w-full max-w-3xl">
       <h1 className="font-display text-2xl font-bold">Write report</h1>
       <p className="mt-1 text-sm text-[var(--muted-foreground)]">One summary per visit. Plain words the patient understands.</p>
       <Suspense fallback={<p role="status" className="mt-4 text-[var(--muted-foreground)]">Loading report form…</p>}>
@@ -30,8 +31,9 @@ async function Gate() {
     </div>
   );
   const supabase = await createClient();
-  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: me } = await supabase.from("profiles").select("role,full_name").eq("id", user.id).single();
   const role = (me as { role?: string } | null)?.role;
+  const userName = (me as { full_name?: string } | null)?.full_name ?? "";
   if (!role || !["doctor", "nurse", "admin"].includes(role)) {
     return (
       <div className="mt-4">
@@ -40,5 +42,9 @@ async function Gate() {
       </div>
     );
   }
-  return <ReportForm />;
+  return (
+    <StaffShell role={role} userName={userName}>
+      <ReportForm />
+    </StaffShell>
+  );
 }

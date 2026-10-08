@@ -5,7 +5,8 @@ import { LabInbox } from "@/components/LabInbox";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { StateBlock } from "@/components/StateBlock";
 import { QueryError } from "@/components/QueryError";
-import { StaffNav, StaffGate } from "@/components/StaffNav";
+import { StaffGate } from "@/components/StaffNav";
+import { StaffShell } from "@/components/StaffShell";
 
 export const instant = false;
 
@@ -31,15 +32,11 @@ async function LabContent() {
   if (!user) return <StaffGate message="Lab staff only. Log in first." loginNext="/lab" />;
 
   const supabase = await createClient();
-  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: me } = await supabase.from("profiles").select("role,full_name").eq("id", user.id).single();
   const role = (me as { role?: string } | null)?.role;
+  const userName = (me as { full_name?: string } | null)?.full_name ?? "";
   if (!role || !["lab", "doctor", "nurse", "admin"].includes(role)) {
-    return (
-      <>
-        <StaffNav role={role ?? ""} />
-        <StaffGate message="Lab staff only. Your role cannot open this inbox." loginNext="/lab" />
-      </>
-    );
+    return <StaffGate message="Lab staff only. Your role cannot open this inbox." loginNext="/lab" />;
   }
 
   const { data, error: inboxError } = await supabase
@@ -61,20 +58,14 @@ async function LabContent() {
   }));
 
   if (items.length === 0) return (
-    <>
-      <StaffNav role={role} />
-      <div className="mt-4">
-        <StateBlock state="labEmpty" />
-      </div>
-    </>
+    <StaffShell role={role} userName={userName}>
+      <StateBlock state="labEmpty" />
+    </StaffShell>
   );
 
   return (
-    <>
-      <StaffNav role={role} />
-      <div className="mt-4">
-        <LabInbox initial={items} />
-      </div>
-    </>
+    <StaffShell role={role} userName={userName}>
+      <LabInbox initial={items} />
+    </StaffShell>
   );
 }
