@@ -3,6 +3,8 @@ import { connection } from "next/server";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { LabInbox } from "@/components/LabInbox";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
+import { StateBlock } from "@/components/StateBlock";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -36,12 +38,13 @@ async function LabContent() {
     return <p className="text-[var(--muted-foreground)]">Lab staff only.</p>;
   }
 
-  const { data } = await supabase
+  const { data, error: inboxError } = await supabase
     .from("test_orders")
     .select("id,test_name,status,result_text,is_released,patient_id,patient:profiles!test_orders_patient_id_fkey(full_name)")
     .neq("status", "Cancelled")
     .order("created_at", { ascending: true })
     .limit(100);
+  if (inboxError) return <QueryError />;
 
   const items = (data ?? []).map((r) => ({
     id: r.id as string,
@@ -52,6 +55,8 @@ async function LabContent() {
     patient_id: r.patient_id as string,
     patient_name: ((r.patient as unknown as { full_name?: string })?.full_name) ?? "Patient",
   }));
+
+  if (items.length === 0) return <StateBlock state="labEmpty" href="/lab" />;
 
   return <LabInbox initial={items} />;
 }

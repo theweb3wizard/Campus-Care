@@ -22,8 +22,11 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [testName, setTestName] = useState<Record<string, string>>({});
   const [rx, setRx] = useState<Record<string, { name: string; dosage: string }>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   async function setStatus(id: string, status: "Confirmed" | "Completed" | "Cancelled") {
+    if (busyId) return;
+    setBusyId(id);
     setMsg(null);
     try {
       const supabase = createClient();
@@ -69,6 +72,8 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
       setItems((v) => v.map((x) => (x.id === id ? { ...x, status } : x)));
     } catch (err) {
       setMsg(friendlyError(err, "Update failed."));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -78,6 +83,8 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
       setMsg("Type a test name first (e.g. Malaria RDT).");
       return;
     }
+    if (busyId) return;
+    setBusyId(item.id);
     setMsg(null);
     try {
       const supabase = createClient();
@@ -94,6 +101,8 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
       setMsg(`Test ordered: ${name}. Lab will see it in their inbox.`);
     } catch (err) {
       setMsg(friendlyError(err, "Order failed."));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -103,6 +112,8 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
       setMsg("Type a medicine name first.");
       return;
     }
+    if (busyId) return;
+    setBusyId(item.id);
     setMsg(null);
     try {
       const supabase = createClient();
@@ -121,6 +132,8 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
       setMsg(`Prescribed ${entry.name.trim()}. Pharmacy will see it.`);
     } catch (err) {
       setMsg(friendlyError(err, "Prescription failed."));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -136,9 +149,9 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
             {formatSlot(v.starts_at)} · Ref {v.reference}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => setStatus(v.id, "Confirmed")} aria-label={`Confirm ${v.service} for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold">Confirm</button>
-            <button type="button" onClick={() => setStatus(v.id, "Completed")} aria-label={`Complete ${v.service} for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold">Complete</button>
-            <button type="button" onClick={() => setStatus(v.id, "Cancelled")} aria-label={`Cancel ${v.service} for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold">Cancel</button>
+            <button type="button" onClick={() => setStatus(v.id, "Confirmed")} disabled={busyId === v.id} aria-label={`Confirm ${v.service} for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-60">Confirm</button>
+            <button type="button" onClick={() => setStatus(v.id, "Completed")} disabled={busyId === v.id} aria-label={`Complete ${v.service} for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-60">Complete</button>
+            <button type="button" onClick={() => setStatus(v.id, "Cancelled")} disabled={busyId === v.id} aria-label={`Cancel ${v.service} for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-60">Cancel</button>
             <Link href={`/reports/new?appointment=${v.id}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)]">Write report</Link>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-2">
@@ -152,7 +165,7 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
                   aria-label={`Test name for ${v.patient_name}`}
                   className="h-11 min-h-[44px] flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
                 />
-                <button type="button" onClick={() => orderTest(v)} aria-label={`Order test for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold">Order test</button>
+                <button type="button" onClick={() => orderTest(v)} disabled={busyId === v.id} aria-label={`Order test for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-60">{busyId === v.id ? "Working…" : "Order test"}</button>
               </span>
             </label>
             <label className="flex flex-col gap-1 text-sm font-medium">
@@ -165,7 +178,7 @@ export function DoctorQueue({ initial }: { initial: QueueItem[] }) {
                   aria-label={`Medicine for ${v.patient_name}`}
                   className="h-11 min-h-[44px] flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
                 />
-                <button type="button" onClick={() => prescribe(v)} aria-label={`Prescribe for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold">Prescribe</button>
+                <button type="button" onClick={() => prescribe(v)} disabled={busyId === v.id} aria-label={`Prescribe for ${v.patient_name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-60">{busyId === v.id ? "Working…" : "Prescribe"}</button>
               </span>
             </label>
           </div>

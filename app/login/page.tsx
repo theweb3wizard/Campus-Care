@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeId } from "@/lib/identity";
 import { StatusMessage, Spinner } from "@/components/motion/StatusMessage";
+import { friendlyError } from "@/lib/errors";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function LoginPage() {
       router.push("/profile");
       router.refresh();
     } catch (err) {
-      fail(err instanceof Error ? err.message : "Login failed. Try again.");
+      fail(friendlyError(err, "Login failed. Try again."));
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,8 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { StaffManager } from "@/components/StaffManager";
 import { RegistryTools } from "@/components/RegistryTools";
 import { ClinicSettingsForm } from "@/components/ClinicSettingsForm";
+import { InboxSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 import Link from "next/link";
 
 export const instant = false;
@@ -14,7 +16,7 @@ export default async function AdminPage() {
       <h1 className="font-display text-2xl font-bold">Staff management</h1>
       <p className="mt-1 text-sm text-[var(--muted-foreground)]">Admin only. Set roles and decide which doctors patients can book.</p>
       <div className="mt-4">
-        <Suspense fallback={<p className="text-[var(--muted-foreground)]">Loading…</p>}>
+        <Suspense fallback={<InboxSkeleton />}>
           <AdminContent />
         </Suspense>
       </div>
@@ -34,12 +36,14 @@ async function AdminContent() {
     return <p className="text-[var(--muted-foreground)]">Admin only. Ask an admin to grant you access.</p>;
   }
 
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select("id,full_name,card_number,role")
     .order("full_name")
     .limit(200);
-  const { data: doctors } = await supabase.from("doctors").select("id,specialty,room,is_active");
+  if (profilesError) return <QueryError />;
+  const { data: doctors, error: doctorsError } = await supabase.from("doctors").select("id,specialty,room,is_active");
+  if (doctorsError) return <QueryError />;
   const docMap = new Map(((doctors ?? []) as { id: string; specialty: string; room: string; is_active: boolean }[]).map((d) => [d.id, d]));
 
   const rows = ((profiles ?? []) as { id: string; full_name: string; card_number: string | null; role: string }[]).map((p) => ({
@@ -47,10 +51,12 @@ async function AdminContent() {
     doctor: docMap.get(p.id) ?? null,
   }));
 
-  const { data: setting } = await supabase.from("clinic_settings").select("value").eq("key", "allow_open_signup").single();
+  const { data: setting, error: settingError } = await supabase.from("clinic_settings").select("value").eq("key", "allow_open_signup").single();
+  if (settingError) return <QueryError />;
   const openSignup = (setting as { value?: string } | null)?.value !== "false";
 
-  const { data: allSettings } = await supabase.from("clinic_settings").select("key,value");
+  const { data: allSettings, error: allSettingsError } = await supabase.from("clinic_settings").select("key,value");
+  if (allSettingsError) return <QueryError />;
   const settingsMap: Record<string, string> = {};
   for (const s of (allSettings ?? []) as { key: string; value: string }[]) settingsMap[s.key] = s.value;
 

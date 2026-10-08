@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { DoctorQueue } from "@/components/DoctorQueue";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -57,7 +58,8 @@ async function QueueContent() {
     query = query.eq("doctor_id", user.id);
   }
 
-  const { data } = await query;
+  const { data, error: queueError } = await query;
+  if (queueError) return <QueryError />;
   const items = (data ?? []).map((r) => ({
     id: r.id as string,
     service: r.service as string,

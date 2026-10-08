@@ -13,6 +13,7 @@ export function MedicineStock({ initial }: { initial: Med[] }) {
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("tabs");
   const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   async function restock(m: Med) {
     const n = Number(qty[m.id] ?? "0");
@@ -20,6 +21,8 @@ export function MedicineStock({ initial }: { initial: Med[] }) {
       setMsg("Type a whole number between 1 and 10000.");
       return;
     }
+    if (busy) return;
+    setBusy(true);
     setMsg(null);
     try {
       const supabase = createClient();
@@ -30,6 +33,8 @@ export function MedicineStock({ initial }: { initial: Med[] }) {
       setMsg(`Added ${n} to ${m.name}.`);
     } catch (err) {
       setMsg(friendlyError(err, "Restock failed."));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -38,6 +43,8 @@ export function MedicineStock({ initial }: { initial: Med[] }) {
       setMsg("Type the medicine name first.");
       return;
     }
+    if (busy) return;
+    setBusy(true);
     setMsg(null);
     try {
       const supabase = createClient();
@@ -52,6 +59,8 @@ export function MedicineStock({ initial }: { initial: Med[] }) {
       setMsg(`${(data as Med).name} added with zero stock. Restock it above.`);
     } catch (err) {
       setMsg(friendlyError(err, "Add failed. It may already exist."));
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -74,7 +83,7 @@ export function MedicineStock({ initial }: { initial: Med[] }) {
               aria-label={`Restock quantity for ${m.name}`}
               className="h-11 min-h-[44px] w-28 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base"
             />
-            <button type="button" onClick={() => restock(m)} aria-label={`Restock ${m.name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold">Restock</button>
+            <button type="button" onClick={() => restock(m)} disabled={busy} aria-label={`Restock ${m.name}`} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-60">{busy ? "Working…" : "Restock"}</button>
           </div>
         </div>
       ))}
@@ -84,7 +93,7 @@ export function MedicineStock({ initial }: { initial: Med[] }) {
         <div className="mt-2 flex flex-wrap gap-2">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" aria-label="Medicine name" className="h-11 min-h-[44px] flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base" />
           <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="Unit" aria-label="Unit" className="h-11 min-h-[44px] w-28 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base" />
-          <button type="button" onClick={addNew} className="flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)]">Add</button>
+          <button type="button" onClick={addNew} disabled={busy} className="flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)] disabled:opacity-60">{busy ? "Working…" : "Add"}</button>
         </div>
       </div>
       {msg ? <p role="status" className="text-sm font-medium">{msg}</p> : null}

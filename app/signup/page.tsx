@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeId } from "@/lib/identity";
 import { StatusMessage, Spinner } from "@/components/motion/StatusMessage";
+import { friendlyError } from "@/lib/errors";
 
 type Mode = "student" | "staff";
 
@@ -104,7 +105,7 @@ export default function SignupPage() {
       }
       router.refresh();
     } catch (err) {
-      fail(err instanceof Error ? err.message : "Signup failed. Try again.");
+      fail(friendlyError(err, "Signup failed. Try again."));
     } finally {
       setLoading(false);
     }

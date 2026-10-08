@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/errors";
 import { formatSlot } from "@/lib/booking";
 import { StatusPill } from "@/components/StatusPill";
+import { StateBlock } from "@/components/StateBlock";
 import { ConfirmDialog } from "@/components/motion/ConfirmDialog";
 import { StatusMessage } from "@/components/motion/StatusMessage";
 import { SlotPicker, combineDateTime } from "@/components/SlotPicker";
@@ -106,7 +107,7 @@ export function VisitsList({ initial }: { initial: Visit[] }) {
   }
 
   if (visits.length === 0) {
-    return <p className="mt-2 text-[var(--muted-foreground)]">No visit yet. Book your first visit.</p>;
+    return <StateBlock state="visitsEmpty" href="/book" />;
   }
 
   return (

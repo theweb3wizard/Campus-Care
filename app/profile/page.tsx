@@ -4,6 +4,8 @@ import Link from "next/link";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/ProfileForm";
 import { StatusPill } from "@/components/StatusPill";
+import { InboxSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -11,7 +13,7 @@ export default async function ProfilePage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-bold">Profile</h1>
-      <Suspense fallback={<p className="mt-2 text-[var(--muted-foreground)]">Loading profile…</p>}>
+      <Suspense fallback={<InboxSkeleton />}>
         <ProfileContent />
       </Suspense>
     </div>
@@ -26,7 +28,7 @@ async function ProfileContent() {
         <p className="font-medium">Supabase not connected yet.</p>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
           Copy <code>.env.example</code> to <code>.env.local</code>, add URL + anon key, then run
-          migrations <code>0001 → 0004</code> plus <code>seed.sql</code> in Supabase SQL Editor. Then log in.
+          migrations <code>0001 → 0007</code> plus <code>seed.sql</code> in Supabase SQL Editor. Then log in.
         </p>
         <p className="mt-3 text-sm">
           <Link href="/login" className="font-semibold underline">Go to login</Link>
@@ -52,7 +54,8 @@ async function ProfileContent() {
   }
 
   const supabase = await createClient();
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  const { data: profile, error: profileError } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  if (profileError) return <QueryError />;
   if (!profile) {
     return <p className="mt-2">Account found but no profile row. Log out and log in again.</p>;
   }

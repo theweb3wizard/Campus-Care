@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/errors";
 import { StatusPill } from "@/components/StatusPill";
+import { StateBlock } from "@/components/StateBlock";
 
 export type RxItem = {
   id: string;
@@ -20,8 +21,11 @@ export type RxItem = {
 export function PharmacyQueue({ initial }: { initial: RxItem[] }) {
   const [items, setItems] = useState(initial);
   const [msg, setMsg] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   async function dispense(id: string) {
+    if (busyId) return;
+    setBusyId(id);
     setMsg(null);
     try {
       const supabase = createClient();
@@ -33,6 +37,8 @@ export function PharmacyQueue({ initial }: { initial: RxItem[] }) {
       setMsg("Dispensed. The patient is alerted automatically.");
     } catch (err) {
       setMsg(friendlyError(err, "Dispense failed."));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -49,13 +55,13 @@ export function PharmacyQueue({ initial }: { initial: RxItem[] }) {
             {p.stock_qty !== null ? ` · Available: ${p.stock_qty}` : ""}
           </p>
           {p.status === "Prescribed" ? (
-            <button type="button" onClick={() => dispense(p.id)} className="mt-3 flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)]">
-              Mark dispensed
+            <button type="button" onClick={() => dispense(p.id)} disabled={busyId === p.id} aria-label={`Dispense ${p.medicine_name} for ${p.patient_name}`} className="mt-3 flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)] disabled:opacity-60">
+              {busyId === p.id ? "Dispensing…" : "Mark dispensed"}
             </button>
           ) : null}
         </div>
       ))}
-      {items.length === 0 ? <p className="text-[var(--muted-foreground)]">Nothing to dispense.</p> : null}
+      {items.length === 0 ? <StateBlock state="pharmacyEmpty" href="/pharmacy" /> : null}
       {msg ? <p role="status" className="text-sm font-medium">{msg}</p> : null}
     </div>
   );

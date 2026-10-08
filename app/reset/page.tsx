@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { StatusMessage, Spinner } from "@/components/motion/StatusMessage";
+import { friendlyError } from "@/lib/errors";
 
 export default function ResetPage() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function ResetPage() {
       router.push("/login");
       router.refresh();
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Failed. Request a new link.");
+      setMsg(friendlyError(err, "Failed. Request a new link."));
       requestAnimationFrame(() => boxRef.current?.focus());
     } finally {
       setLoading(false);

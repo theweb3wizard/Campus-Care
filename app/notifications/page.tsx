@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { NotificationsList } from "@/components/NotificationsList";
 import { NoticesSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -33,11 +34,12 @@ async function NoticesContent() {
     );
   }
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error: listError } = await supabase
     .from("notifications")
     .select("id,title,body,link,is_read,created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
+  if (listError) return <QueryError />;
   return <NotificationsList initial={(data ?? []) as { id: string; title: string; body: string; link: string; is_read: boolean; created_at: string }[]} />;
 }

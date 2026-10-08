@@ -4,6 +4,7 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { demoDoctors } from "@/lib/booking";
 import { BookingForm } from "@/components/BookingForm";
 import { SlotsSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -44,7 +45,8 @@ async function BookContent() {
   }
 
   const supabase = await createClient();
-  const { data: rows } = await supabase.rpc("active_doctors");
+  const { data: rows, error } = await supabase.rpc("active_doctors");
+  if (error) return <QueryError />;
 
   const doctors = ((rows ?? []) as unknown as { id: string; specialty: string; room: string; full_name: string }[]).map((r) => ({
     id: r.id as string,

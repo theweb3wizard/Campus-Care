@@ -2,6 +2,7 @@
 
 export type StateKey =
   | "bookEmptyDoctors"
+  | "expertsEmpty"
   | "slotTaken"
   | "booked"
   | "visitsEmpty"
@@ -27,6 +28,7 @@ export type StateKey =
 
 export const states: Record<StateKey, { headline: string; body: string; action: string }> = {
   bookEmptyDoctors: { headline: "No doctors available right now", body: "Try another clinic or check back later.", action: "Find a specialist" },
+  expertsEmpty: { headline: "No specialists listed yet", body: "The clinic has not added doctors. Check back later.", action: "Book a visit" },
   slotTaken: { headline: "That time is now taken", body: "Pick another time to keep your place.", action: "Choose another time" },
   booked: { headline: "Booking received", body: "Show your ticket at the reception when you arrive.", action: "View ticket" },
   visitsEmpty: { headline: "No visits yet", body: "Book a visit when you need care.", action: "Book a visit" },

@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { EmergencyQueue } from "@/components/EmergencyQueue";
+import { InboxSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -10,7 +12,7 @@ export default async function EmergencyRequestsPage() {
     <div>
       <h1 className="font-display text-2xl font-bold">Emergency requests</h1>
       <div className="mt-4">
-        <Suspense fallback={<p className="text-[var(--muted-foreground)]">Loading…</p>}>
+        <Suspense fallback={<InboxSkeleton />}>
           <RequestsContent />
         </Suspense>
       </div>
@@ -30,11 +32,12 @@ async function RequestsContent() {
   if (!role || !["doctor", "nurse", "receptionist", "admin"].includes(role)) {
     return <p className="text-[var(--muted-foreground)]">Staff only.</p>;
   }
-  const { data } = await supabase
+  const { data, error: listError } = await supabase
     .from("emergency_requests")
     .select("id,reporter_name,location,phone,description,priority,status,created_at")
     .neq("status", "Resolved")
     .order("created_at", { ascending: false })
     .limit(100);
+  if (listError) return <QueryError />;
   return <EmergencyQueue initial={(data ?? []) as { id: string; reporter_name: string; location: string; phone: string; description: string; priority: string; status: string; created_at: string }[]} />;
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeId } from "@/lib/identity";
 import { StatusMessage, Spinner } from "@/components/motion/StatusMessage";
+import { friendlyError } from "@/lib/errors";
 
 export default function ForgotPage() {
   const [id, setId] = useState("");
@@ -35,7 +36,7 @@ export default function ForgotPage() {
       if (error) throw new Error("Could not send reset email. Try again later.");
       setMsg("Reset link sent. Check your school email inbox.");
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Failed. Try again.");
+      setMsg(friendlyError(err, "Failed. Try again."));
       setIsError(true);
       requestAnimationFrame(() => boxRef.current?.focus());
     } finally {

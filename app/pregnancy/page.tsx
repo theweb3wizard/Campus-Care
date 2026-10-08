@@ -3,6 +3,9 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { PregnancyClient } from "@/components/PregnancyClient";
+import { NoticesSkeleton } from "@/components/motion/Skeletons";
+import { StateBlock } from "@/components/StateBlock";
+import { QueryError } from "@/components/QueryError";
 import type { PregnancyRecord } from "@/lib/special";
 
 export const instant = false;
@@ -13,7 +16,7 @@ export default async function PregnancyPage() {
       <h1 className="font-display text-2xl font-bold">Pregnancy care</h1>
       <p className="mt-1 text-sm text-[var(--muted-foreground)]">Registration, follow-up dates, and maternity notes in one place.</p>
       <div className="mt-4">
-        <Suspense fallback={<p className="text-[var(--muted-foreground)]">Loading…</p>}>
+        <Suspense fallback={<NoticesSkeleton />}>
           <PregnancyContent />
         </Suspense>
       </div>
@@ -45,10 +48,12 @@ async function PregnancyContent() {
     .limit(100);
   if (!isStaff) query = query.eq("patient_id", user.id);
 
-  const { data } = await query;
+  const { data, error: listError } = await query;
+  if (listError) return <QueryError />;
   const records = ((data ?? []) as unknown as (PregnancyRecord & { patient: { full_name: string } })[]).map((r) => ({
     ...r,
     patient_name: r.patient?.full_name,
   }));
+  if (records.length === 0 && !isStaff) return <StateBlock state="pregnancyEmpty" />;
   return <PregnancyClient records={records} isStaff={isStaff} />;
 }

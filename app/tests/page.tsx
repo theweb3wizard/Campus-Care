@@ -5,6 +5,8 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { canViewResult, type TestOrder } from "@/lib/clinical";
 import { StatusPill } from "@/components/StatusPill";
 import { TestsSkeleton } from "@/components/motion/Skeletons";
+import { StateBlock } from "@/components/StateBlock";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -39,16 +41,17 @@ async function TestsContent() {
   }
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("test_orders")
     .select("id,test_name,status,result_text,is_released,release_note,created_at")
     .eq("patient_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
+  if (error) return <QueryError />;
 
   const tests = (data ?? []) as TestOrder[];
   if (tests.length === 0) {
-    return <p className="mt-2 text-[var(--muted-foreground)]">No test ordered. Ask your doctor during visit.</p>;
+    return <StateBlock state="testsEmpty" href="/visits" />;
   }
 
   return (

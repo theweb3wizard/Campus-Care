@@ -4,6 +4,7 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { PharmacyQueue } from "@/components/PharmacyQueue";
 import { MedicineStock } from "@/components/MedicineStock";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -37,12 +38,13 @@ async function PharmacyContent() {
     return <p className="text-[var(--muted-foreground)]">Pharmacy staff only.</p>;
   }
 
-  const { data } = await supabase
+  const { data, error: rxError } = await supabase
     .from("prescriptions")
     .select("id,medicine_name,dosage,quantity,instructions,status,patient_id,patient:profiles!prescriptions_patient_id_fkey(full_name)")
     .neq("status", "Cancelled")
     .order("created_at", { ascending: true })
     .limit(100);
+  if (rxError) return <QueryError />;
 
   const items = (data ?? []).map((r) => ({
     id: r.id as string,
@@ -59,16 +61,18 @@ async function PharmacyContent() {
   const names = [...new Set(items.map((i) => i.medicine_name))];
   let stock = new Map<string, number>();
   if (names.length > 0) {
-    const { data: meds } = await supabase.from("medicines").select("name,stock_qty").in("name", names);
+    const { data: meds, error: medsError } = await supabase.from("medicines").select("name,stock_qty").in("name", names);
+    if (medsError) return <QueryError />;
     stock = new Map(((meds ?? []) as { name: string; stock_qty: number }[]).map((m) => [m.name.toLowerCase(), m.stock_qty]));
   }
   const withStock = items.map((i) => ({ ...i, stock_qty: stock.get(i.medicine_name.toLowerCase()) ?? null }));
 
-  const { data: meds } = await supabase
+  const { data: allMeds, error: allMedsError } = await supabase
     .from("medicines")
     .select("id,name,stock_qty,unit")
     .order("name")
     .limit(200);
+  if (allMedsError) return <QueryError />;
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,7 +85,7 @@ async function PharmacyContent() {
       <section>
         <h2 className="font-display text-lg font-semibold">Stock</h2>
         <div className="mt-2">
-          <MedicineStock initial={(meds ?? []) as { id: string; name: string; stock_qty: number; unit: string }[]} />
+          <MedicineStock initial={(allMeds ?? []) as { id: string; name: string; stock_qty: number; unit: string }[]} />
         </div>
       </section>
     </div>

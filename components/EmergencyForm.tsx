@@ -14,7 +14,9 @@ export function EmergencyForm() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Urgent");
   const [msg, setMsg] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [phoneLoaded, setPhoneLoaded] = useState(false);
 
   // Clinic phone comes from settings (admin-editable). No hardcoded number anywhere.
   useEffect(() => {
@@ -30,6 +32,8 @@ export function EmergencyForm() {
         if (v) setClinicPhone(v);
       } catch {
         // stays null — page still works without a number
+      } finally {
+        setPhoneLoaded(true);
       }
     })();
   }, []);
@@ -38,6 +42,13 @@ export function EmergencyForm() {
     e.preventDefault();
     setLoading(true);
     setMsg(null);
+    setOffline(false);
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setLoading(false);
+      setOffline(true);
+      setMsg("You are offline. Ask someone near you to call the clinic now, then try again.");
+      return;
+    }
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -53,7 +64,12 @@ export function EmergencyForm() {
       if (error) throw error;
       setMsg("Received. Go to Clinic Casualty now — staff have been alerted.");
     } catch (err) {
-      setMsg(friendlyError(err, "Send failed. Call the clinic directly."));
+      if (err instanceof TypeError) {
+        setOffline(true);
+        setMsg("You are offline. Ask someone near you to call the clinic now, then try again.");
+      } else {
+        setMsg(friendlyError(err, "Send failed. Call the clinic directly."));
+      }
     } finally {
       setLoading(false);
     }
@@ -64,7 +80,9 @@ export function EmergencyForm() {
       <p className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm">
         Go to Clinic Casualty now. If the line is busy, send details below — staff see it instantly.
       </p>
-      {clinicPhone ? (
+      {!phoneLoaded ? (
+        <p className="text-sm text-[var(--muted-foreground)]" aria-busy="true">Loading clinic number…</p>
+      ) : clinicPhone ? (
         <a href={`tel:${clinicPhone.replace(/\s+/g, "")}`} className="flex h-14 min-h-[56px] items-center justify-center rounded-[10px] bg-[#991b1b] px-6 text-lg font-bold text-white">
           Call {clinicPhone}
         </a>
@@ -95,7 +113,7 @@ export function EmergencyForm() {
             {emergencyPriorities.map((p) => <option key={p}>{p}</option>)}
           </select>
         </label>
-        {msg ? <StatusMessage>{msg}</StatusMessage> : null}
+        {msg ? <StatusMessage role={offline ? "alert" : "status"}>{msg}</StatusMessage> : null}
         <button type="submit" disabled={loading} className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-[#991b1b] px-6 text-base font-bold text-white disabled:opacity-60">
           {loading ? (<><Spinner /> Sending…</>) : "Send emergency request"}
         </button>

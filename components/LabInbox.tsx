@@ -20,8 +20,11 @@ export function LabInbox({ initial }: { initial: LabItem[] }) {
   const [items, setItems] = useState(initial);
   const [results, setResults] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   async function save(id: string, patch: { status?: string; result_text?: string; is_released?: boolean; release_note?: string }) {
+    if (busyId) return;
+    setBusyId(id);
     setMsg(null);
     try {
       const supabase = createClient();
@@ -35,6 +38,8 @@ export function LabInbox({ initial }: { initial: LabItem[] }) {
       setMsg("Saved. Patient sees the result only after Ready + Release.");
     } catch (err) {
       setMsg(friendlyError(err, "Save failed."));
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -64,23 +69,23 @@ export function LabInbox({ initial }: { initial: LabItem[] }) {
           </label>
           <div className="mt-2 flex flex-wrap gap-2">
             {t.status !== "Ready" ? (
-              <button type="button" onClick={() => save(t.id, { status: "Sampled" })} disabled={t.status === "Sampled"} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-50">Mark sampled</button>
+              <button type="button" onClick={() => save(t.id, { status: "Sampled" })} disabled={t.status === "Sampled" || busyId === t.id} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-50">{busyId === t.id ? "Saving…" : "Mark sampled"}</button>
             ) : null}
             <button
               type="button"
               onClick={() => save(t.id, { status: "Ready", result_text: results[t.id] ?? t.result_text })}
-              disabled={t.status === "Ready"}
+              disabled={t.status === "Ready" || busyId === t.id}
               className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-50"
             >
-              Mark ready
+              {busyId === t.id ? "Saving…" : "Mark ready"}
             </button>
             <button
               type="button"
               onClick={() => save(t.id, { result_text: results[t.id] ?? t.result_text, is_released: !t.is_released, release_note: !t.is_released ? "Released by lab. Come to the clinic if you have questions." : "" })}
-              disabled={t.status !== "Ready" && !t.is_released}
+              disabled={(t.status !== "Ready" && !t.is_released) || busyId === t.id}
               className="flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)] disabled:opacity-50"
             >
-              {t.is_released ? "Unrelease" : "Release to patient"}
+              {busyId === t.id ? "Saving…" : t.is_released ? "Unrelease" : "Release to patient"}
             </button>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { VisitsList } from "@/components/VisitsList";
 import { StatusPill } from "@/components/StatusPill";
 import { VisitsSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -41,12 +42,13 @@ async function VisitsContent() {
   }
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("appointments")
     .select("id,service,starts_at,status,reference,doctor_id,doctors!inner(room,profiles!inner(full_name))")
     .eq("patient_id", user.id)
     .order("starts_at", { ascending: false })
     .limit(50);
+  if (error) return <QueryError />;
 
   const visits = (data ?? []).map((r) => ({
     id: r.id as string,
@@ -60,12 +62,13 @@ async function VisitsContent() {
     room: (r.doctors as unknown as { room?: string })?.room ?? "",
   }));
 
-  const { data: rx } = await supabase
+  const { data: rx, error: rxError } = await supabase
     .from("prescriptions")
     .select("id,medicine_name,dosage,quantity,status")
     .eq("patient_id", user.id)
     .order("created_at", { ascending: false })
     .limit(20);
+  if (rxError) return <QueryError />;
 
   const meds = (rx ?? []) as { id: string; medicine_name: string; dosage: string; quantity: number; status: string }[];
 

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import type { Report } from "@/lib/clinical";
 import { StateBlock } from "@/components/StateBlock";
+import { NoticesSkeleton } from "@/components/motion/Skeletons";
+import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
@@ -12,7 +14,7 @@ export default async function ReportsPage() {
     <div>
       <h1 className="font-display text-2xl font-bold">Reports</h1>
       <div className="mt-4">
-        <Suspense fallback={<p className="text-[var(--muted-foreground)]">Loading reports…</p>}>
+        <Suspense fallback={<NoticesSkeleton />}>
           <ReportsContent />
         </Suspense>
       </div>
@@ -35,12 +37,13 @@ async function ReportsContent() {
     );
   }
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error: listError } = await supabase
     .from("reports")
     .select("id,appointment_id,diagnosis,treatment,follow_up_date,created_at")
     .eq("patient_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
+  if (listError) return <QueryError />;
 
   const reports = (data ?? []) as Report[];
   if (reports.length === 0) return <StateBlock state="reportsEmpty" href="/book" />;
