@@ -11,7 +11,7 @@ import { Spinner } from "@/components/motion/StatusMessage";
 import { useToast } from "@/components/motion/Toaster";
 import { tokens } from "@/components/motion/tokens";
 
-export function LogoutButton({ label = "Log out", className }: { label?: string; className?: string }) {
+function useLogoutAction() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -31,6 +31,11 @@ export function LogoutButton({ label = "Log out", className }: { label?: string;
       router.refresh();
     }
   }
+  return { busy, confirmOpen, setConfirmOpen, doLogout };
+}
+
+export function LogoutButton({ label = "Log out", className }: { label?: string; className?: string }) {
+  const { busy, confirmOpen, setConfirmOpen, doLogout } = useLogoutAction();
   return (
     <>
       <button
@@ -75,6 +80,7 @@ export function UserMenu({
   const [open, setOpen] = useState(false);
   const reduce = useReducedMotion();
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const logout = useLogoutAction();
 
   useEffect(() => {
     if (!open) return;
@@ -177,16 +183,34 @@ export function UserMenu({
                   Staff workspace lives in Profile, with sidebar on each staff page.
                 </p>
               ) : null}
-              <div className="px-2 py-1" onClick={() => setOpen(false)}>
-                <LogoutButton
-                  label="Log out"
+              <div className="px-2 py-1">
+                <button
+                  type="button"
+                  disabled={logout.busy}
+                  onClick={() => {
+                    setOpen(false);
+                    logout.setConfirmOpen(true);
+                  }}
                   className="flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold hover:bg-[var(--background)] disabled:opacity-60"
-                />
+                >
+                  <LogOut size={18} aria-hidden /> Log out
+                </button>
               </div>
             </motion.div>
           </>
         ) : null}
       </AnimatePresence>
+      <ConfirmDialog
+        open={logout.confirmOpen}
+        onOpenChange={logout.setConfirmOpen}
+        title="Log out?"
+        body="You will need your ID and password to log back in."
+        confirmLabel="Log out"
+        cancelLabel="Stay logged in"
+        busy={logout.busy}
+        busyLabel="Logging out…"
+        onConfirm={logout.doLogout}
+      />
     </div>
   );
 }

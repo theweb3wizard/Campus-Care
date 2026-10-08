@@ -1,73 +1,96 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { ArrowRight, Phone } from "lucide-react";
 import { brand } from "@/lib/brand";
-import { Reveal } from "@/components/motion/Reveal";
+import { AuthCard } from "@/components/auth/AuthCard";
 import { ResultSheet } from "@/components/ResultSheet";
+import { getSessionUser } from "@/lib/supabase/server";
 
-function Slip({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`rounded-2xl border border-[var(--border)] bg-[var(--card)] ${className}`}>
-      {children}
-    </div>
-  );
+export const instant = false;
+
+async function HomeAuth() {
+  // Session read is per-request: cookies() + Supabase token expiry check
+  // via Date.now(), which is unstable during prerender. Run it at request
+  // time inside Suspense so the "/" static shell can still prerender.
+  await connection();
+  const user = await getSessionUser();
+  if (user) {
+    return (
+      <div className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
+        <h2 className="font-display text-xl font-bold">Welcome back</h2>
+        <p className="mt-1 text-[var(--muted-foreground)]">
+          Book a visit between lectures, or open your profile to continue.
+        </p>
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <Link
+            href="/book"
+            className="flex h-12 min-h-[48px] flex-1 items-center justify-center gap-2 rounded-[10px] bg-[var(--primary)] px-6 text-base font-semibold text-[var(--primary-foreground)]"
+          >
+            Book a clinic visit
+            <ArrowRight size={20} aria-hidden />
+          </Link>
+          <Link
+            href="/profile"
+            className="flex h-12 min-h-[48px] flex-1 items-center justify-center rounded-[10px] border border-[var(--border)] px-6 text-base font-semibold"
+          >
+            Open profile
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  return <AuthCard />;
 }
 
 export default function Home() {
   return (
     <div className="flex flex-col gap-16 md:gap-24">
-      {/* Hero: left-docked editorial split */}
-      <section className="grid items-center gap-8 pt-4 md:grid-cols-[3fr_2fr] md:pt-8">
-        <div>
+      {/* Portal hero: form first on phones, side by side on desktop */}
+      <section className="grid items-start gap-6 pt-4 md:grid-cols-2 md:gap-8 md:pt-8">
+        <div className="order-1 md:order-2">
+          <Suspense
+            fallback={
+              <div className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5" role="status" aria-busy="true" aria-label="Loading account form">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="h-12 rounded-[10px] bg-[var(--border)]" />
+                  <div className="h-12 rounded-[10px] bg-[var(--border)]" />
+                </div>
+                <div className="mt-3 h-12 rounded-[10px] bg-[var(--border)]" />
+                <div className="mt-2 h-12 rounded-[10px] bg-[var(--border)]" />
+              </div>
+            }
+          >
+            <HomeAuth />
+          </Suspense>
+        </div>
+
+        <div className="order-2 md:order-1">
           <h1 className="font-display max-w-[12ch] text-[32px] font-extrabold leading-[1.05] tracking-tight md:text-[44px] md:leading-[1.05]">
             Clinic care without the long queue
           </h1>
           <p className="mt-4 max-w-[60ch] text-lg leading-relaxed">
-            Book a visit between lectures, get test results on your phone, and reach the
-            FUD clinic fast when it matters. Built for student life.
+            Start by creating your account or logging in. Then book visits, get test
+            results, and reach the FUD clinic fast when it matters.
           </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/book"
-              className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-[var(--primary)] px-6 text-base font-semibold text-[var(--primary-foreground)]"
-            >
-              Book a clinic visit
-              <ArrowRight size={20} aria-hidden />
-            </Link>
-            <Link
-              href="/experts"
-              className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] border border-[var(--secondary)] px-6 text-base font-semibold text-[var(--secondary)]"
-            >
-              Find a specialist
-            </Link>
-          </div>
-          <p className="mt-4 text-base">
-            <Link href="/signup" className="font-semibold underline">Create account with Reg No</Link>
-            <span className="text-[var(--muted-foreground)]"> · already have one? </span>
-            <Link href="/login" className="font-semibold underline">Log in</Link>
-          </p>
+          <ul className="mt-6 flex flex-col gap-3">
+            {[
+              { head: "Create account or log in", tail: "Students use Reg No. Staff use Staff ID." },
+              { head: "Book a visit", tail: "Pick a service, doctor, day, and time." },
+              { head: "Show your ticket", tail: "Reception checks you in with your reference." },
+            ].map((s) => (
+              <li key={s.head} className="flex gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+                <span aria-hidden className="mt-2 size-2.5 shrink-0 rounded-full bg-[var(--primary)]" />
+                <span className="text-base">
+                  <strong>{s.head}.</strong> <span className="text-[var(--muted-foreground)]">{s.tail}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
           <p className="mt-4 text-base text-[var(--muted-foreground)]">
-            {brand.subtitle} · {brand.tagline}
+            Mon to Sat · 08:00 to 16:00 · {brand.subtitle}
           </p>
         </div>
-
-        <Reveal>
-          <div aria-hidden className="relative mx-auto w-full max-w-sm">
-            <Slip className="rotate-2 p-5">
-              <p className="text-sm text-[var(--muted-foreground)]">General visit · Room 3</p>
-              <p className="font-slip mt-1 text-xl font-medium">B27 · 10:40 · Room 3</p>
-              <p className="mt-3 inline-block rounded-md bg-[var(--primary)] px-3 py-1 text-sm font-bold text-white">
-                Booked
-              </p>
-            </Slip>
-            <Slip className="absolute -bottom-10 left-6 right-0 -rotate-1 border-dashed p-4">
-              <p className="font-slip text-sm">A14 · 09:20 · Lab window</p>
-              <p className="mt-1 inline-block rounded-md bg-[var(--info-bg)] px-2 py-0.5 text-sm font-bold text-[var(--info-fg)]">
-                Ready
-              </p>
-            </Slip>
-            <div className="h-10" />
-          </div>
-        </Reveal>
       </section>
 
       {/* Visit rows: sticky split */}

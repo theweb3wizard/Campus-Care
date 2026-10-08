@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Phone } from "lucide-react";
 import { ClinicLogo } from "./ClinicLogo";
 import { BottomNav } from "./BottomNav";
@@ -9,6 +10,10 @@ import { brand } from "@/lib/brand";
 import { getSessionUser, createClient } from "@/lib/supabase/server";
 
 async function HeaderSession() {
+  // Session header is per-request (Supabase reads token expiry via
+  // Date.now(), which is unstable during prerender). Opt this subtree
+  // into request-time rendering; pages keep their own prerendering.
+  await connection();
   const user = await getSessionUser();
   if (!user) return <UserMenu user={null} />;
   let headerUser: { full_name: string; role: string; login_id: string } | null = null;
