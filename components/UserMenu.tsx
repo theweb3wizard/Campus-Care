@@ -139,7 +139,7 @@ export function UserMenu({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={reduce ? undefined : { opacity: 0, y: 6, scale: 0.98 }}
               transition={{ duration: tokens.modal.duration, ease: tokens.modal.ease }}
-              className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 shadow-lg"
+              className="fixed left-4 right-4 top-[72px] z-50 w-auto origin-top rounded-2xl border border-[var(--border)] bg-[var(--card)] p-2 shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-64 sm:origin-top-right"
             >
               <p className="px-3 py-2 text-sm">
                 <strong className="block truncate">{user.full_name}</strong>

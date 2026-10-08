@@ -22,10 +22,7 @@ export default async function ProfilePage({
   const welcome = sp.welcome === "verify";
   return (
     <div>
-      <div className="flex items-center gap-2">
-        <BackButton fallback="/" label="Back" />
-        <h1 className="font-display text-2xl font-bold">Profile</h1>
-      </div>
+      <h1 className="font-display text-2xl font-bold">Profile</h1>
       <Suspense fallback={<InboxSkeleton />}>
         <ProfileContent welcome={welcome} />
       </Suspense>
@@ -99,6 +96,9 @@ async function ProfileContent({ welcome }: { welcome: boolean }) {
       ) : null}
       {p.role === "patient" ? (
         <>
+          <div className="mt-3">
+            <BackButton fallback="/" label="Back" />
+          </div>
           <PatientDetails
             loginId={p.login_id}
             role={p.role}
