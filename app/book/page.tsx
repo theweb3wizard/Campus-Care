@@ -23,7 +23,7 @@ export default async function BookPage({
   return (
     <div className="flex flex-col gap-4">
       <h1 className="font-display text-2xl font-bold">Book appointment</h1>
-      <p className="text-sm text-[var(--muted-foreground)]">Clinic hours Mon to Sat, 09:00 to 15:40. Closed Sundays.</p>
+      <p className="text-sm text-[var(--muted-foreground)]">Clinic hours Mon to Sat, 09:00 to 15:40. Closed Sundays. Pick any day up to 60 days ahead.</p>
       {preview ? (
         <p className="rounded-2xl border border-dashed border-[var(--warning-fg)] bg-[var(--warning-bg)] p-4 text-sm font-medium text-[var(--warning-fg)]">
           Preview mode — sample doctors below. Connect the clinic database to book for real.

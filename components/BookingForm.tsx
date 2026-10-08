@@ -246,7 +246,7 @@ export function BookingForm({
 
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="font-display text-lg font-semibold">3. Day and time</h2>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">20-minute slots, 09:00 to 15:40. Closed Sundays. Taken times show as taken.</p>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">Open the calendar for any day up to 60 days ahead, then pick a 20-minute time. Taken times show as taken.</p>
         <div className="mt-3">
           <SlotPicker date={date} time={time} takenMs={takenMs} onDate={selectDate} onTime={setTime} idPrefix="book" />
         </div>
