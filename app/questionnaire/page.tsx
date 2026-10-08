@@ -46,7 +46,12 @@ async function QuestionnaireContent() {
       .limit(30);
     if (listError) return <QueryError />;
     const rows = (data ?? []) as unknown as { id: string; answers: Record<string, string>; created_at: string; profiles: { full_name: string } }[];
-    if (rows.length === 0) return <p className="text-[var(--muted-foreground)]">No answers yet.</p>;
+    if (rows.length === 0) return (
+      <div>
+        <p role="status" className="text-[var(--muted-foreground)]">No answers yet. Patients answer from Profile, Health questions.</p>
+        <p className="mt-3 text-sm"><Link href="/profile" className="font-semibold underline">Back to profile</Link></p>
+      </div>
+    );
     return (
       <div className="flex flex-col gap-3">
         {rows.map((r) => (

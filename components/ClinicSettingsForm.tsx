@@ -19,17 +19,28 @@ export function ClinicSettingsForm({ initial }: { initial: Record<string, string
 
   async function save() {
     setMsg(null);
+    const maxQ = (values.max_daily_queue ?? "").trim();
+    if (maxQ !== "" && (!/^\d+$/.test(maxQ) || Number(maxQ) < 1 || Number(maxQ) > 1000)) {
+      setMsg("Max daily queue must be a whole number from 1 to 1000. Empty means 200.");
+      return;
+    }
+    const phone = (values.clinic_phone ?? "").trim();
+    if (phone !== "" && phone.replace(/\D/g, "").length < 7) {
+      setMsg("Clinic phone looks too short. Emergency call button needs at least 7 digits.");
+      return;
+    }
     setBusy(true);
     try {
       const supabase = createClient();
       for (const f of FIELDS) {
+        const v = f.key === "max_daily_queue" ? maxQ : (values[f.key] ?? "").trim();
         const { error } = await supabase
           .from("clinic_settings")
-          .update({ value: values[f.key] ?? "" })
+          .update({ value: v })
           .eq("key", f.key);
         if (error) throw error;
       }
-      setMsg("Saved. Emergency page uses the phone immediately.");
+      setMsg(phone === "" ? "Saved. Note: empty phone hides the emergency call button." : "Saved. Emergency page uses the phone immediately.");
     } catch (err) {
       setMsg(friendlyError(err, "Save failed."));
     } finally {
@@ -40,6 +51,7 @@ export function ClinicSettingsForm({ initial }: { initial: Record<string, string
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
       <h2 className="font-display text-lg font-semibold">Clinic settings</h2>
+      <p className="mt-1 text-sm text-[var(--muted-foreground)]">Max queue empty means 200. Empty phone hides the emergency call button.</p>
       <div className="mt-2 grid gap-3 md:grid-cols-2">
         {FIELDS.map((f) => (
           <label key={f.key} className="flex flex-col gap-1 text-sm font-medium">
@@ -55,7 +67,7 @@ export function ClinicSettingsForm({ initial }: { initial: Record<string, string
       <button type="button" onClick={save} disabled={busy} className="mt-3 flex h-12 min-h-[48px] items-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)] disabled:opacity-60">
         {busy ? "Saving…" : "Save settings"}
       </button>
-      {msg ? <p role="status" className="mt-2 text-sm font-medium">{msg}</p> : null}
+      {msg ? <div className="mt-2"><p role="alert" className="text-sm font-medium">{msg}</p></div> : null}
     </section>
   );
 }

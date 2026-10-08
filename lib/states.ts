@@ -24,7 +24,8 @@ export type StateKey =
   | "questionnaireSent"
   | "notificationsEmpty"
   | "receptionNotFound"
-  | "receptionBooked";
+  | "receptionBooked"
+  | "doctorEmpty";
 
 export const states: Record<StateKey, { headline: string; body: string; action: string }> = {
   bookEmptyDoctors: { headline: "No doctors available right now", body: "Try another clinic or check back later.", action: "Find a specialist" },
@@ -40,7 +41,7 @@ export const states: Record<StateKey, { headline: string; body: string; action: 
   pharmacyEmpty: { headline: "No prescriptions waiting", body: "New prescriptions from doctors will show here.", action: "Refresh" },
   dispensed: { headline: "Medicines given out", body: "Record is saved. Call the next patient.", action: "Next patient" },
   reportsEmpty: { headline: "No reports yet", body: "Complete visits to build your health history here.", action: "Book a visit" },
-  pregnancyEmpty: { headline: "No pregnancy record yet", body: "Add your details so the clinic can follow your care.", action: "Add pregnancy" },
+  pregnancyEmpty: { headline: "No pregnancy record yet", body: "Reception or your doctor opens one at your first antenatal visit. Your follow-up dates show here after that.", action: "Book antenatal visit" },
   emergencySent: { headline: "Help is on the way", body: "Stay where you are and keep your phone close.", action: "View emergency info" },
   emergencyOffline: { headline: "Emergency did not send", body: "You are offline. Ask someone near you to call the clinic now.", action: "Try again" },
   loginWrongPassword: { headline: "Wrong password", body: "Check it and try again.", action: "Try again" },
@@ -51,4 +52,5 @@ export const states: Record<StateKey, { headline: string; body: string; action: 
   notificationsEmpty: { headline: "No notifications yet", body: "We will tell you about bookings, results and visits here.", action: "Book a visit" },
   receptionNotFound: { headline: "No patient found", body: "Check the spelling or search with the registered phone number.", action: "Search again" },
   receptionBooked: { headline: "Patient booked and ticketed", body: "Give the ticket to the patient and direct them to wait.", action: "Book another patient" },
+  doctorEmpty: { headline: "No appointments in queue", body: "New check-ins from reception will show here.", action: "Open reception" },
 };

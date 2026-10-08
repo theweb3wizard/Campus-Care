@@ -9,18 +9,24 @@ import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
+  const sp = await searchParams;
+  const welcome = sp.welcome === "verify";
   return (
     <div>
       <h1 className="font-display text-2xl font-bold">Profile</h1>
       <Suspense fallback={<InboxSkeleton />}>
-        <ProfileContent />
+        <ProfileContent welcome={welcome} />
       </Suspense>
     </div>
   );
 }
 
-async function ProfileContent() {
+async function ProfileContent({ welcome }: { welcome: boolean }) {
   await connection();
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return (
@@ -74,15 +80,20 @@ async function ProfileContent() {
 
   return (
     <>
+      {welcome ? (
+        <p role="status" className="mt-3 rounded-2xl border border-[var(--primary)] bg-[var(--card)] p-4 text-sm">
+          <strong>Account created.</strong> If your faculty record matched, you are verified. If not, come to reception with your ID card once. Booking works either way.
+        </p>
+      ) : null}
       {!p.verified && p.role === "patient" ? (
         <p className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm">
-          <strong>Not verified yet.</strong> Come to reception with your ID card. Booking still works.
+          <strong>Not verified yet.</strong> Come to reception with your ID card once for a physical check. Booking still works before that.
         </p>
       ) : null}
       <dl className="mt-3 grid gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-sm md:grid-cols-2">
-        <div><dt className="text-[var(--muted-foreground)]">Login ID</dt><dd className="font-semibold">{p.login_id}</dd></div>
-        <div><dt className="text-[var(--muted-foreground)]">Role</dt><dd><StatusPill status={p.role} /></dd></div>
-        <div><dt className="text-[var(--muted-foreground)]">Card number</dt><dd className="font-semibold">{p.card_number ?? "To be issued at clinic"}</dd></div>
+        <div><dt className="text-[var(--muted-foreground)]">Student ID or Staff ID</dt><dd className="font-semibold">{p.login_id}</dd></div>
+        <div><dt className="text-[var(--muted-foreground)]">Account type</dt><dd><StatusPill status={p.role} /></dd></div>
+        <div><dt className="text-[var(--muted-foreground)]">Card number</dt><dd className="font-semibold">{p.card_number ?? "To be issued at clinic — come anyway"}</dd></div>
         <div><dt className="text-[var(--muted-foreground)]">Clinic file</dt><dd className="font-semibold">{f?.file_number ?? "Opens at first visit"}</dd></div>
         {s ? (
           <>
@@ -101,16 +112,27 @@ async function ProfileContent() {
 }
 
 function StaffLinks({ role }: { role: string }) {
+  const can = (roles: readonly string[]) => (roles as readonly string[]).includes(role);
   return (
     <nav aria-label="Staff" className="mt-4 flex flex-wrap gap-2 text-sm font-semibold">
-      <Link href="/doctor" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Queue</Link>
-      <Link href="/reception" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Reception</Link>
-      <Link href="/lab" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Lab</Link>
-      <Link href="/pharmacy" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Pharmacy</Link>
-      <Link href="/emergency/requests" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Emergencies</Link>
+      {can(["doctor", "nurse", "receptionist", "admin"]) ? (
+        <>
+          <Link href="/doctor" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Queue</Link>
+          <Link href="/reception" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Reception</Link>
+        </>
+      ) : null}
+      {can(["lab", "doctor", "nurse", "admin"]) ? (
+        <Link href="/lab" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Lab</Link>
+      ) : null}
+      {can(["pharmacy", "doctor", "nurse", "admin"]) ? (
+        <Link href="/pharmacy" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Pharmacy</Link>
+      ) : null}
+      {can(["doctor", "nurse", "receptionist", "admin"]) ? (
+        <Link href="/emergency/requests" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Emergencies</Link>
+      ) : null}
       <Link href="/reports" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Reports</Link>
       {role === "admin" ? (
-        <Link href="/admin" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Staff</Link>
+        <Link href="/admin" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Admin</Link>
       ) : null}
       <Link href="/notifications" className="flex min-h-[44px] items-center rounded-full border border-[var(--border)] px-4">Alerts</Link>
     </nav>
@@ -119,12 +141,12 @@ function StaffLinks({ role }: { role: string }) {
 
 function PatientLinks() {
   return (
-    <p className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+    <nav aria-label="Your care" className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
       <Link href="/reports" className="inline-flex min-h-[44px] items-center font-semibold underline">My reports</Link>
       <Link href="/pregnancy" className="inline-flex min-h-[44px] items-center font-semibold underline">Pregnancy care</Link>
       <Link href="/experts" className="inline-flex min-h-[44px] items-center font-semibold underline">Find a specialist</Link>
       <Link href="/questionnaire" className="inline-flex min-h-[44px] items-center font-semibold underline">Health questions</Link>
       <Link href="/notifications" className="inline-flex min-h-[44px] items-center font-semibold underline">Alerts</Link>
-    </p>
+    </nav>
   );
 }

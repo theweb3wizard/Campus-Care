@@ -61,7 +61,7 @@ export function SlotPicker({
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <label className="flex flex-col gap-1 text-sm font-medium" htmlFor={`${idPrefix}-date`}>
-        Day
+        Day <span className="font-normal text-[var(--muted-foreground)]">Closed Sundays</span>
         <select
           id={`${idPrefix}-date`}
           value={date}
@@ -78,7 +78,7 @@ export function SlotPicker({
         </select>
       </label>
       <label className="flex flex-col gap-1 text-sm font-medium" htmlFor={`${idPrefix}-time`}>
-        Time
+        Time <span className="font-normal text-[var(--muted-foreground)]">{date ? "09:00 to 15:40" : "Pick a day first"}</span>
         <select
           id={`${idPrefix}-time`}
           value={time}
@@ -86,7 +86,7 @@ export function SlotPicker({
           disabled={!date}
           className="h-12 min-h-[48px] rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base disabled:opacity-60"
         >
-          <option value="">{date ? "Choose a time…" : "Pick a day first…"}</option>
+          <option value="">{date ? (times.length === 0 ? "No times left today — pick another day" : "Choose a time…") : "Pick a day first…"}</option>
           {times.map((t) => (
             <option key={t.value} value={t.value} disabled={t.taken}>
               {t.label}{t.taken ? " — taken" : ""}

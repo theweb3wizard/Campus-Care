@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/errors";
 import { StatusPill } from "@/components/StatusPill";
 import { notifyUser } from "@/lib/notify";
+import { ConfirmDialog } from "@/components/motion/ConfirmDialog";
+import { StatusMessage } from "@/components/motion/StatusMessage";
+import { StateBlock } from "@/components/StateBlock";
 
 export type LabItem = {
   id: string;
@@ -21,25 +24,37 @@ export function LabInbox({ initial }: { initial: LabItem[] }) {
   const [results, setResults] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [pendingRelease, setPendingRelease] = useState<LabItem | null>(null);
 
   async function save(id: string, patch: { status?: string; result_text?: string; is_released?: boolean; release_note?: string }) {
-    if (busyId) return;
+    if (busyId === id) return;
     setBusyId(id);
     setMsg(null);
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("test_orders").update(patch).eq("id", id);
-      if (error) throw error;
-      setItems((v) => v.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-      if (patch.is_released) {
-        const item = items.find((x) => x.id === id);
-        if (item) await notifyUser(item.patient_id, "Test result ready", `${item.test_name} is ready. Open Tests to view it.`, "/tests");
+      const current = items.find((x) => x.id === id);
+      const nextPatch = { ...patch };
+      // Never silently blank a released result: require text when marking Ready.
+      if (nextPatch.status === "Ready" && !(nextPatch.result_text ?? "").trim()) {
+        throw new Error("Type the result first, then mark Ready.");
       }
-      setMsg("Saved. Patient sees the result only after Ready + Release.");
+      const { error } = await supabase.from("test_orders").update(nextPatch).eq("id", id);
+      if (error) throw error;
+      setItems((v) => v.map((x) => (x.id === id ? { ...x, ...nextPatch } : x)));
+      if (nextPatch.is_released) {
+        const item = current ?? items.find((x) => x.id === id);
+        if (item) await notifyUser(item.patient_id, "Test result ready", `${item.test_name} is ready. Open Tests to view it.`, "/tests");
+        setMsg(`${current?.test_name ?? "Test"} released. Patient sees it in Tests now.`);
+      } else if (nextPatch.is_released === false) {
+        setMsg(`${current?.test_name ?? "Test"} unreleased. Patient no longer sees it. Only unrelease if the result was wrong.`);
+      } else {
+        setMsg("Saved. Patient sees the result only after Ready plus Release.");
+      }
     } catch (err) {
       setMsg(friendlyError(err, "Save failed."));
     } finally {
       setBusyId(null);
+      setPendingRelease(null);
     }
   }
 
@@ -59,7 +74,7 @@ export function LabInbox({ initial }: { initial: LabItem[] }) {
             </span>
           </div>
           <label className="mt-3 flex flex-col gap-1 text-sm font-medium">
-            Result
+            Result {t.is_released ? <span className="font-normal text-[var(--warning-fg)]">Released — editing then saving changes what the patient sees. Re-check before saving.</span> : null}
             <textarea
               value={results[t.id] ?? t.result_text}
               onChange={(e) => setResults((m) => ({ ...m, [t.id]: e.target.value }))}
@@ -67,6 +82,7 @@ export function LabInbox({ initial }: { initial: LabItem[] }) {
               className="rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
             />
           </label>
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">Steps: Sampled, then Ready, then Release. Patient sees nothing until Release.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {t.status !== "Ready" ? (
               <button type="button" onClick={() => save(t.id, { status: "Sampled" })} disabled={t.status === "Sampled" || busyId === t.id} className="flex h-11 min-h-[44px] items-center rounded-[10px] border border-[var(--border)] px-4 text-sm font-semibold disabled:opacity-50">{busyId === t.id ? "Saving…" : "Mark sampled"}</button>
@@ -81,8 +97,9 @@ export function LabInbox({ initial }: { initial: LabItem[] }) {
             </button>
             <button
               type="button"
-              onClick={() => save(t.id, { result_text: results[t.id] ?? t.result_text, is_released: !t.is_released, release_note: !t.is_released ? "Released by lab. Come to the clinic if you have questions." : "" })}
+              onClick={() => (t.is_released ? setPendingRelease(t) : save(t.id, { result_text: results[t.id] ?? t.result_text, is_released: true, release_note: "Released by lab. Come to the clinic if you have questions." }))}
               disabled={(t.status !== "Ready" && !t.is_released) || busyId === t.id}
+              title={t.status !== "Ready" && !t.is_released ? "Mark Ready first, then release" : undefined}
               className="flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)] disabled:opacity-50"
             >
               {busyId === t.id ? "Saving…" : t.is_released ? "Unrelease" : "Release to patient"}
@@ -90,8 +107,18 @@ export function LabInbox({ initial }: { initial: LabItem[] }) {
           </div>
         </div>
       ))}
-      {items.length === 0 ? <p className="text-[var(--muted-foreground)]">Inbox empty. Ordered tests appear here.</p> : null}
-      {msg ? <p role="status" className="text-sm font-medium">{msg}</p> : null}
+      {items.length === 0 ? <StateBlock state="labEmpty" /> : null}
+      {msg ? <div><StatusMessage role="alert">{msg}</StatusMessage></div> : null}
+      <ConfirmDialog
+        open={pendingRelease !== null}
+        onOpenChange={(o) => !o && setPendingRelease(null)}
+        title="Unrelease this result?"
+        body={pendingRelease ? `${pendingRelease.test_name} · ${pendingRelease.patient_name}. Patient was told it is ready. They will no longer see it.` : ""}
+        confirmLabel="Yes, unrelease"
+        busy={busyId !== null}
+        busyLabel="Working…"
+        onConfirm={() => pendingRelease && save(pendingRelease.id, { is_released: false, release_note: "" })}
+      />
     </div>
   );
 }

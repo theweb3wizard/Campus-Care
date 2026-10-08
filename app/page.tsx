@@ -6,7 +6,7 @@ import { ResultSheet } from "@/components/ResultSheet";
 
 function Slip({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-xl border border-[#1e3a5f26] bg-white ${className}`}>
+    <div className={`rounded-2xl border border-[var(--border)] bg-[var(--card)] ${className}`}>
       {children}
     </div>
   );
@@ -40,6 +40,11 @@ export default function Home() {
               Find a specialist
             </Link>
           </div>
+          <p className="mt-4 text-base">
+            <Link href="/signup" className="font-semibold underline">Create account with Reg No</Link>
+            <span className="text-[var(--muted-foreground)]"> · already have one? </span>
+            <Link href="/login" className="font-semibold underline">Log in</Link>
+          </p>
           <p className="mt-4 text-base text-[var(--muted-foreground)]">
             {brand.subtitle} · {brand.tagline}
           </p>
@@ -51,13 +56,13 @@ export default function Home() {
               <p className="text-sm text-[var(--muted-foreground)]">General visit · Room 3</p>
               <p className="font-slip mt-1 text-xl font-medium">B27 · 10:40 · Room 3</p>
               <p className="mt-3 inline-block rounded-md bg-[var(--primary)] px-3 py-1 text-sm font-bold text-white">
-                BOOKED
+                Booked
               </p>
             </Slip>
             <Slip className="absolute -bottom-10 left-6 right-0 -rotate-1 border-dashed p-4">
               <p className="font-slip text-sm">A14 · 09:20 · Lab window</p>
               <p className="mt-1 inline-block rounded-md bg-[var(--info-bg)] px-2 py-0.5 text-sm font-bold text-[var(--info-fg)]">
-                READY
+                Ready
               </p>
             </Slip>
             <div className="h-10" />
@@ -87,8 +92,8 @@ export default function Home() {
                 <p className="text-lg font-semibold">{r.service}</p>
                 <p className="font-slip mt-1 text-sm text-[var(--muted-foreground)]">{r.meta}</p>
               </div>
-              <Link href="/book" className="flex h-12 min-h-[48px] items-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)]">
-                Reserve
+              <Link href={`/book?service=${r.service}`} className="flex h-12 min-h-[48px] items-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)]">
+                Book {r.service}
               </Link>
             </div>
           ))}
@@ -132,7 +137,7 @@ export default function Home() {
           ))}
           <article className="w-[280px] shrink-0 snap-start rounded-2xl bg-[var(--secondary)] p-5 text-white">
             <p className="text-lg font-semibold">Pharmacy pickup</p>
-            <p className="mt-1 text-base opacity-80">Collect with your ticket after the doctor visit</p>
+            <p className="mt-1 text-base text-white">Collect with your ticket after the doctor visit</p>
             <p className="font-slip mt-3 border-t border-dashed border-white/40 pt-3 text-sm">Alerts tell you when ready</p>
           </article>
         </div>
@@ -142,11 +147,11 @@ export default function Home() {
       <section className="-mx-4 bg-[var(--primary)] px-4 py-10 text-white md:px-8">
         <div className="mx-auto w-full max-w-5xl">
           <h2 className="font-display text-2xl font-bold">Emergency on campus?</h2>
-          <p className="mt-2 max-w-[60ch] text-lg opacity-90">
+          <p className="mt-2 max-w-[60ch] text-lg text-white">
             Go to Clinic Casualty now. Call, or send your hostel location so staff can find you.
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Link href="/emergency" className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-white px-6 font-semibold text-[#0f766e]">
+            <Link href="/emergency" className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-[var(--card)] px-6 font-semibold text-[var(--primary)]">
               <Phone size={20} aria-hidden />
               Get emergency help
             </Link>
@@ -167,7 +172,7 @@ export default function Home() {
           </Link>
         </div>
         <figure className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 md:p-8">
-          <div aria-hidden className="h-0.5 w-12 bg-[#9a7b2e]" />
+          <div aria-hidden className="h-0.5 w-12 bg-[var(--color-gold)]" />
           <blockquote className="mt-4 text-xl leading-relaxed">
             Private by default. Maternity records are visible only to you and your care team.
           </blockquote>
@@ -180,15 +185,15 @@ export default function Home() {
         <div className="mx-auto grid w-full max-w-5xl gap-4 md:grid-cols-3">
           <div>
             <p className="font-display text-lg font-bold">{brand.fullName}</p>
-            <p className="mt-1 opacity-80">{brand.tagline}</p>
+            <p className="mt-1 text-white">{brand.tagline}</p>
           </div>
           <div>
             <p className="font-semibold">Clinic hours</p>
-            <p className="mt-1 opacity-80">Mon to Sat · 08:00 to 16:00</p>
+            <p className="mt-1 text-white">Mon to Sat · 08:00 to 16:00</p>
           </div>
           <div>
             <p className="font-semibold">No phone?</p>
-            <p className="mt-1 opacity-80">Use a clinic computer or ask reception to book for you.</p>
+            <p className="mt-1 text-white">Use a clinic computer or ask reception to book for you.</p>
           </div>
         </div>
       </footer>

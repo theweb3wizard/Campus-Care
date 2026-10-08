@@ -28,7 +28,14 @@ async function VisitsContent() {
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
   if (!configured) {
-    return <p className="mt-2 text-[var(--muted-foreground)]">No visit yet. Book your first visit.</p>;
+    return (
+      <div className="mt-2">
+        <p className="text-[var(--muted-foreground)]">No visit yet. Book your first visit.</p>
+        <p className="mt-3">
+          <Link href="/book" className="inline-flex h-12 min-h-[48px] items-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)]">Book a visit</Link>
+        </p>
+      </div>
+    );
   }
 
   const user = await getSessionUser();
@@ -78,8 +85,9 @@ async function VisitsContent() {
       <section>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Medicines</h2>
-          <Link href="/reports" className="text-sm font-semibold underline">Reports</Link>
+          <Link href="/reports" className="inline-flex min-h-[44px] items-center px-2 text-sm font-semibold underline">Reports</Link>
         </div>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">Collect at pharmacy when the doctor prescribes. Pickup status shows here.</p>
         {meds.length === 0 ? (
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">No prescriptions yet.</p>
         ) : (

@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeId } from "@/lib/identity";
@@ -9,7 +9,18 @@ import { StatusMessage, Spinner } from "@/components/motion/StatusMessage";
 import { friendlyError } from "@/lib/errors";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<p role="status" className="text-sm text-[var(--muted-foreground)]">Loading login…</p>}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/profile";
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/profile";
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +48,7 @@ export default function LoginPage() {
       if (!email) throw new Error("No account uses that ID. Check it, or create one below.");
       const { error } = await supabase.auth.signInWithPassword({ email: email as string, password });
       if (error) throw new Error("Wrong ID or password. Check both and try again.");
-      router.push("/profile");
+      router.push(safeNext);
       router.refresh();
     } catch (err) {
       fail(friendlyError(err, "Login failed. Try again."));
@@ -49,7 +60,7 @@ export default function LoginPage() {
   return (
     <div className="mx-auto w-full max-w-md">
       <h1 className="font-display text-2xl font-bold">Log in</h1>
-      <p className="mt-1 text-[var(--muted-foreground)]">Students use Reg No. Staff use Staff ID. No email needed.</p>
+      <p className="mt-1 text-[var(--muted-foreground)]">Students use Reg No. Staff use Staff ID. Email is only for password reset.</p>
       <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <label className="flex flex-col gap-1 text-sm font-medium">
           Student ID or Staff ID

@@ -60,7 +60,6 @@ export function ConfirmDialog({
                       <button
                         type="button"
                         disabled={busy}
-                        autoFocus
                         className="flex h-12 min-h-[48px] items-center justify-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)] disabled:opacity-60"
                       >
                         {cancelLabel}
@@ -70,7 +69,7 @@ export function ConfirmDialog({
                       type="button"
                       disabled={busy}
                       onClick={onConfirm}
-                      className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-[#991b1b] px-6 font-semibold text-white disabled:opacity-60"
+                      className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-[var(--emergency)] px-6 font-semibold text-white hover:bg-[var(--emergency-hover)] disabled:opacity-60"
                     >
                       {busy ? busyLabel : confirmLabel}
                     </button>

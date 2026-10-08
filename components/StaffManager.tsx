@@ -25,6 +25,12 @@ export function StaffManager({ initial }: { initial: StaffRow[] }) {
   );
 
   async function save(row: StaffRow, patch: { role: string; specialty: string; room: string; is_active: boolean }) {
+    if (patch.role === "admin" && row.role !== "admin") {
+      if (!window.confirm(`Promote ${row.full_name} to ADMIN? They will control roles, stock, and settings.`)) return;
+    }
+    if (row.role === "admin" && patch.role !== "admin") {
+      if (!window.confirm(`Demote ${row.full_name} from ADMIN to ${patch.role}? Make sure another admin remains.`)) return;
+    }
     setSaving(row.id);
     setMsg(null);
     try {
@@ -57,13 +63,15 @@ export function StaffManager({ initial }: { initial: StaffRow[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search name, card, or role…"
-        aria-label="Search staff"
-        className="h-12 min-h-[48px] rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-4 text-base"
-      />
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Search staff
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name, card, or role…"
+          className="h-12 min-h-[48px] rounded-[10px] border border-[var(--border)] bg-[var(--card)] px-4 text-base"
+        />
+      </label>
       {filtered.map((r) => (
         <StaffCard key={r.id} row={r} saving={saving === r.id} onSave={save} />
       ))}

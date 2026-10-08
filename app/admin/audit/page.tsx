@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { connection } from "next/server";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { NoticesSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
+import { StaffGate, StaffNav } from "@/components/StaffNav";
 
 export const instant = false;
 
@@ -25,11 +27,11 @@ async function AuditContent() {
   const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   if (!configured) return <p className="text-[var(--muted-foreground)]">Connect Supabase first.</p>;
   const user = await getSessionUser();
-  if (!user) return <p className="text-[var(--muted-foreground)]">Admin only. Log in first.</p>;
+  if (!user) return <StaffGate message="Audit log is admin only. Log in first." loginNext="/admin/audit" />;
   const supabase = await createClient();
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((me as { role?: string } | null)?.role !== "admin") {
-    return <p className="text-[var(--muted-foreground)]">Admin only.</p>;
+    return <StaffGate message="Audit log is admin only." loginNext="/admin/audit" />;
   }
   const { data, error: listError } = await supabase
     .from("audit_logs")
@@ -38,9 +40,17 @@ async function AuditContent() {
     .limit(100);
   if (listError) return <QueryError />;
   const rows = (data ?? []) as unknown as { id: string; action: string; resource_type: string; resource_id: string; created_at: string; profiles: { full_name: string } | null }[];
-  if (rows.length === 0) return <p className="text-[var(--muted-foreground)]">Empty. Actions appear here as staff work.</p>;
+  if (rows.length === 0) return (
+    <div>
+      <p role="status" className="text-[var(--muted-foreground)]">Empty. Actions appear here as staff work.</p>
+      <p className="mt-3 text-sm"><Link href="/admin" className="font-semibold underline">Back to admin</Link></p>
+    </div>
+  );
   return (
-    <ul className="flex flex-col gap-2">
+    <>
+    <StaffNav role="admin" />
+    <p className="mt-4 text-sm"><Link href="/admin" className="inline-flex min-h-[44px] items-center font-semibold underline">Back to admin</Link></p>
+    <ul className="mt-2 flex flex-col gap-2">
       {rows.map((r) => (
         <li key={r.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 text-sm">
           <strong>{r.action}</strong>
@@ -49,5 +59,6 @@ async function AuditContent() {
         </li>
       ))}
     </ul>
+    </>
   );
 }

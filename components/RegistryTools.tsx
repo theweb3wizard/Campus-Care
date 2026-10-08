@@ -18,6 +18,43 @@ export function RegistryTools({ openSignup }: { openSignup: boolean }) {
   const [mode, setMode] = useState(openSignup);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<{ reg: string; name: string }[]>([]);
+
+  function parseCsvLine(line: string): string[] {
+    const out: string[] = [];
+    let cur = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (c === "," && !inQuotes) {
+        out.push(cur.trim());
+        cur = "";
+      } else {
+        cur += c;
+      }
+    }
+    out.push(cur.trim());
+    return out.map((s) => s.replace(/^"|"$/g, "").trim());
+  }
+
+  function previewCsv() {
+    const lines = csv.split("\n").map((l) => l.trim()).filter(Boolean);
+    const rows: { reg: string; name: string }[] = [];
+    for (const l of lines.slice(0, 5)) {
+      const [reg, name] = parseCsvLine(l);
+      rows.push({ reg: reg ?? "", name: name ?? "" });
+    }
+    setPreview(rows);
+    if (lines.length === 0) setMsg("Paste at least one line: REG,Full Name,Faculty,Department");
+    else setMsg(`Previewing first ${rows.length} of ${lines.length} lines. Names with commas must be quoted: "Bello, Amina".`);
+  }
 
   async function importStudents() {
     setMsg(null);
@@ -30,14 +67,15 @@ export function RegistryTools({ openSignup }: { openSignup: boolean }) {
     try {
       const supabase = createClient();
       const rows = lines.map((l) => {
-        const [reg, name, faculty, dept] = l.split(",").map((s) => s.trim());
+        const [reg, name, faculty, dept] = parseCsvLine(l);
         if (!reg || !name) throw new Error(`Bad line (need REG,Name): ${l}`);
         return { reg_number: reg.toUpperCase(), full_name: name, faculty: faculty || null, department: dept || null };
       });
       const { error } = await supabase.from("students").upsert(rows, { onConflict: "reg_number", ignoreDuplicates: true });
       if (error) throw error;
-      setMsg(`Imported ${rows.length} lines. Existing reg numbers were skipped.`);
+      setMsg(`Sent ${rows.length} lines. Existing reg numbers were skipped by the database. Check a claimed student to verify.`);
       setCsv("");
+      setPreview([]);
     } catch (err) {
       setMsg(friendlyError(err, "Import failed."));
     } finally {
@@ -49,6 +87,9 @@ export function RegistryTools({ openSignup }: { openSignup: boolean }) {
     setMsg(null);
     if (!staffId.trim() || !staffName.trim() || !/.+@.+\..+/.test(staffEmail.trim())) {
       setMsg("Staff ID, name, and school email are all needed. The email must match at signup.");
+      return;
+    }
+    if (staffRole === "admin" && !window.confirm(`Grant ADMIN to ${staffName.trim()} (${staffId.trim().toUpperCase()})? Admin can change roles and settings.`)) {
       return;
     }
     setBusy(true);
@@ -74,6 +115,9 @@ export function RegistryTools({ openSignup }: { openSignup: boolean }) {
 
   async function saveMode() {
     setMsg(null);
+    if (mode && !window.confirm("Turn ON open signup? Anyone with any Reg format can try to register (marked unverified).")) {
+      return;
+    }
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -93,17 +137,27 @@ export function RegistryTools({ openSignup }: { openSignup: boolean }) {
     <div className="flex flex-col gap-4">
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="font-display text-lg font-semibold">Student registry import</h2>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">One per line: REG,Full Name,Faculty,Department. Claimed rows are never overwritten.</p>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">One per line: REG,Full Name,Faculty,Department. If a name has a comma, quote it: &quot;Bello, Amina&quot;. Claimed rows are never overwritten.</p>
         <textarea
           value={csv}
           onChange={(e) => setCsv(e.target.value)}
           rows={4}
-          placeholder={"FCO/CSC/24/1001,Amina Bello,Computing,Computer Science"}
+          placeholder={'FCO/CSC/24/1001,Amina Bello,Computing,Computer Science\n"FCO/CSC/24/1002,Bello, Amina",Computing,Computer Science'}
           className="mt-2 w-full rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-base"
         />
-        <button type="button" onClick={importStudents} disabled={busy} className="mt-2 flex h-12 min-h-[48px] items-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)] disabled:opacity-60">
-          {busy ? "Importing…" : "Import"}
-        </button>
+        {preview.length > 0 ? (
+          <ul className="mt-2 rounded-[10px] border border-[var(--border)] p-3 text-sm">
+            {preview.map((r, i) => (
+              <li key={i}><strong>{r.reg || "(missing reg)"}</strong> · {r.name || "(missing name)"}</li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" onClick={previewCsv} className="flex h-12 min-h-[48px] items-center rounded-[10px] border border-[var(--border)] px-6 font-semibold">Preview first 5</button>
+          <button type="button" onClick={importStudents} disabled={busy} className="flex h-12 min-h-[48px] items-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)] disabled:opacity-60">
+            {busy ? "Importing…" : "Import"}
+          </button>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">

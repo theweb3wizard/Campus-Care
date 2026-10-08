@@ -70,11 +70,18 @@ async function TestsContent() {
               ) : null}
             </div>
           ) : (
-            <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-              {t.status === "Ready"
-                ? "Your result is ready — come to the clinic to discuss it with your doctor."
-                : "Not ready yet. We will tell you when ready. No need to queue."}
-            </p>
+            <div className="mt-2 text-sm">
+              <p className="text-[var(--muted-foreground)]">
+                {t.status === "Ready"
+                  ? "Your result is ready. Come to the clinic to discuss it with your doctor."
+                  : "Not ready yet. We will tell you when ready. No need to queue."}
+              </p>
+              {t.status === "Ready" ? (
+                <p className="mt-2">
+                  <Link href="/book" className="inline-flex min-h-[44px] items-center font-semibold underline">Book a follow-up visit</Link>
+                </p>
+              ) : null}
+            </div>
           )}
         </div>
       ))}

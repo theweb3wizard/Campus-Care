@@ -40,6 +40,7 @@ export function EmergencyForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setMsg(null);
     setOffline(false);
@@ -49,20 +50,35 @@ export function EmergencyForm() {
       setMsg("You are offline. Ask someone near you to call the clinic now, then try again.");
       return;
     }
+    if (phone.replace(/\D/g, "").length < 7) {
+      setLoading(false);
+      setMsg("Type a reachable phone number with at least 7 digits so staff can call back.");
+      return;
+    }
+    if (description.trim().length < 10 || location.trim().length < 3) {
+      setLoading(false);
+      setMsg("Add a short description (10+ characters) and a clear location so staff can find you.");
+      return;
+    }
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("emergency_requests").insert({
         patient_id: user?.id ?? null,
-        reporter_name: name,
-        location,
-        phone,
-        description,
+        reporter_name: name.trim(),
+        location: location.trim(),
+        phone: phone.trim(),
+        description: description.trim().slice(0, 2000),
         priority,
         status: "Open",
       });
       if (error) throw error;
-      setMsg("Received. Go to Clinic Casualty now — staff have been alerted.");
+      setName("");
+      setLocation("");
+      setPhone("");
+      setDescription("");
+      setPriority("Urgent");
+      setMsg("Received. Go to Clinic Casualty now — staff have been alerted. If no one calls in 10 minutes, come in person.");
     } catch (err) {
       if (err instanceof TypeError) {
         setOffline(true);
@@ -81,12 +97,16 @@ export function EmergencyForm() {
         Go to Clinic Casualty now. If the line is busy, send details below — staff see it instantly.
       </p>
       {!phoneLoaded ? (
-        <p className="text-sm text-[var(--muted-foreground)]" aria-busy="true">Loading clinic number…</p>
+        <p role="status" className="text-sm text-[var(--muted-foreground)]">Loading clinic number…</p>
       ) : clinicPhone ? (
-        <a href={`tel:${clinicPhone.replace(/\s+/g, "")}`} className="flex h-14 min-h-[56px] items-center justify-center rounded-[10px] bg-[#991b1b] px-6 text-lg font-bold text-white">
+        <a href={`tel:${clinicPhone.replace(/\s+/g, "")}`} className="flex h-14 min-h-[56px] items-center justify-center rounded-[10px] bg-[var(--emergency)] px-6 text-lg font-bold text-white hover:bg-[var(--emergency-hover)]">
           Call {clinicPhone}
         </a>
-      ) : null}
+      ) : (
+        <p role="status" className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm">
+          Clinic number is not set. Go to Clinic Casualty now or ask someone near you to help.
+        </p>
+      )}
       <form onSubmit={onSubmit} className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="font-display text-lg font-semibold">Request emergency help</h2>
         <div className="grid gap-3 md:grid-cols-2">
@@ -112,9 +132,10 @@ export function EmergencyForm() {
           <select value={priority} onChange={(e) => setPriority(e.target.value)} className="h-12 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base">
             {emergencyPriorities.map((p) => <option key={p}>{p}</option>)}
           </select>
+          <span className="text-sm font-normal text-[var(--muted-foreground)]">Staff triage on arrival. Logged-out requests are treated as Urgent first.</span>
         </label>
         {msg ? <StatusMessage role={offline ? "alert" : "status"}>{msg}</StatusMessage> : null}
-        <button type="submit" disabled={loading} className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-[#991b1b] px-6 text-base font-bold text-white disabled:opacity-60">
+        <button type="submit" disabled={loading} className="flex h-12 min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-[var(--emergency)] px-6 text-base font-bold text-white hover:bg-[var(--emergency-hover)] disabled:opacity-60">
           {loading ? (<><Spinner /> Sending…</>) : "Send emergency request"}
         </button>
       </form>

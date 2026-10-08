@@ -9,7 +9,6 @@ import { StateBlock } from "@/components/StateBlock";
 import { ConfirmDialog } from "@/components/motion/ConfirmDialog";
 import { StatusMessage } from "@/components/motion/StatusMessage";
 import { SlotPicker, combineDateTime } from "@/components/SlotPicker";
-import { lagosDayRange } from "@/lib/booking";
 
 export type Visit = {
   id: string;
@@ -63,11 +62,12 @@ export function VisitsList({ initial }: { initial: Visit[] }) {
     }
     try {
       const supabase = createClient();
-      const { start, end } = lagosDayRange(dateValue);
-      const { data } = await supabase.rpc("booked_slots", { p_doctor: doctorId, p_start: start, p_end: end });
+      const { data, error } = await supabase.rpc("booked_slots", { p_doctor: doctorId, p_day: dateValue });
+      if (error) throw error;
       setTakenMs(new Set(((data ?? []) as string[]).map((s) => new Date(s).getTime())));
     } catch {
       setTakenMs(new Set());
+      setMsg("Could not load taken times. Check connection before moving.");
     }
   }
 
@@ -88,7 +88,7 @@ export function VisitsList({ initial }: { initial: Visit[] }) {
         p_ends: ends.toISOString(),
       });
       if (error) throw new Error("Move failed. Try again.");
-      const res = data as { success: boolean; error?: string; reference?: string };
+      const res = data as { success: boolean; error?: string; reference?: string; starts_at?: string };
       if (!res.success) throw new Error(res.error ?? "Move failed.");
       setVisits((vs) =>
         vs.map((x) =>
@@ -97,7 +97,8 @@ export function VisitsList({ initial }: { initial: Visit[] }) {
             : x
         )
       );
-      setMsg(`Moved. Your new reference is ${res.reference}. Old booking is closed.`);
+      const movedWhen = res.starts_at ? ` New time: ${formatSlot(res.starts_at)}.` : ` New time: ${newDate} at ${newTime}.`;
+      setMsg(`Moved.${movedWhen} New reference is ${res.reference ?? "in Visits"}. Old booking is closed. Refresh Visits to see it.`);
       setResched(null);
     } catch (err) {
       setMsg(friendlyError(err, "Move failed."));

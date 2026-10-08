@@ -11,7 +11,7 @@ type ClinicLogoProps = {
  */
 export function ClinicLogo({ size = 32, variant = "solid", className }: ClinicLogoProps) {
   const bg = variant === "mono" ? "currentColor" : "#0f766e";
-  const fg = variant === "mono" ? "#ffffff" : "#ffffff";
+  const fg = "#ffffff";
   return (
     <svg
       width={size}

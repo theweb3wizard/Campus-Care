@@ -6,6 +6,7 @@ import { RegistryTools } from "@/components/RegistryTools";
 import { ClinicSettingsForm } from "@/components/ClinicSettingsForm";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
+import { StaffNav, StaffGate } from "@/components/StaffNav";
 import Link from "next/link";
 
 export const instant = false;
@@ -29,11 +30,11 @@ async function AdminContent() {
   const configured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   if (!configured) return <p className="text-[var(--muted-foreground)]">Connect Supabase first.</p>;
   const user = await getSessionUser();
-  if (!user) return <p className="text-[var(--muted-foreground)]">Admin only. Log in first.</p>;
+  if (!user) return <StaffGate message="Admin only. Log in first." loginNext="/admin" />;
   const supabase = await createClient();
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if ((me as { role?: string } | null)?.role !== "admin") {
-    return <p className="text-[var(--muted-foreground)]">Admin only. Ask an admin to grant you access.</p>;
+    return <StaffGate message="Admin only. Ask an admin to grant you access." loginNext="/admin" />;
   }
 
   const { data: profiles, error: profilesError } = await supabase
@@ -62,6 +63,7 @@ async function AdminContent() {
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffNav role="admin" />
       <p>
         <Link href="/admin/audit" className="inline-flex min-h-[44px] items-center text-sm font-semibold underline">Open audit log</Link>
       </p>

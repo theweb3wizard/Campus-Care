@@ -5,6 +5,7 @@ import { PharmacyQueue } from "@/components/PharmacyQueue";
 import { MedicineStock } from "@/components/MedicineStock";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
+import { StaffNav, StaffGate } from "@/components/StaffNav";
 
 export const instant = false;
 
@@ -12,7 +13,7 @@ export default async function PharmacyPage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-bold">Pharmacy</h1>
-      <p className="mt-1 text-sm text-[var(--muted-foreground)]">Prescribed first. Confirm pickup face to face.</p>
+      <p className="mt-1 text-sm text-[var(--muted-foreground)]">Prescribed first. Confirm patient is present, then dispense face to face.</p>
       <div className="mt-4">
         <Suspense fallback={<InboxSkeleton />}>
           <PharmacyContent />
@@ -29,13 +30,13 @@ async function PharmacyContent() {
   );
   if (!configured) return <p className="text-[var(--muted-foreground)]">Connect Supabase to see the queue.</p>;
   const user = await getSessionUser();
-  if (!user) return <p className="text-[var(--muted-foreground)]">Staff only. Log in first.</p>;
+  if (!user) return <StaffGate message="Pharmacy is staff only. Log in first." loginNext="/pharmacy" />;
 
   const supabase = await createClient();
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = (me as { role?: string } | null)?.role;
   if (!role || !["pharmacy", "doctor", "nurse", "admin"].includes(role)) {
-    return <p className="text-[var(--muted-foreground)]">Pharmacy staff only.</p>;
+    return <StaffGate message="Pharmacy staff only. Your role cannot open it." loginNext="/pharmacy" />;
   }
 
   const { data, error: rxError } = await supabase
@@ -76,6 +77,7 @@ async function PharmacyContent() {
 
   return (
     <div className="flex flex-col gap-6">
+      <StaffNav role={role} />
       <section>
         <h2 className="font-display text-lg font-semibold">To dispense</h2>
         <div className="mt-2">

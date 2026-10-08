@@ -54,6 +54,6 @@ async function PregnancyContent() {
     ...r,
     patient_name: r.patient?.full_name,
   }));
-  if (records.length === 0 && !isStaff) return <StateBlock state="pregnancyEmpty" />;
+  if (records.length === 0 && !isStaff) return <StateBlock state="pregnancyEmpty" href="/book?service=Antenatal" />;
   return <PregnancyClient records={records} isStaff={isStaff} />;
 }

@@ -17,14 +17,19 @@ function safeLink(link: string): string | null {
 
 export function NotificationsList({ initial }: { initial: Notice[] }) {
   const [items, setItems] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
 
   async function markRead(id: string) {
+    setError(null);
+    const prev = items;
+    setItems((v) => v.map((x) => (x.id === id ? { ...x, is_read: true } : x)));
     try {
       const supabase = createClient();
-      await supabase.from("notifications").update({ is_read: true }).eq("id", id);
-      setItems((v) => v.map((x) => (x.id === id ? { ...x, is_read: true } : x)));
+      const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+      if (error) throw error;
     } catch {
-      // silent — list still usable
+      setItems(prev);
+      setError("Could not mark as read. Check connection and try again.");
     }
   }
 
@@ -32,6 +37,7 @@ export function NotificationsList({ initial }: { initial: Notice[] }) {
 
   return (
     <div className="flex flex-col gap-2">
+      {error ? <p role="alert" className="text-sm font-medium text-[var(--destructive-fg)]">{error}</p> : null}
       {items.map((n) => {
         const open = safeLink(n.link);
         return (
@@ -43,7 +49,11 @@ export function NotificationsList({ initial }: { initial: Notice[] }) {
               ) : null}
             </div>
             {n.body ? <p className="mt-1 text-sm text-[var(--muted-foreground)]">{n.body}</p> : null}
-            {open ? <p className="mt-1 text-sm"><Link href={open} className="inline-flex min-h-[44px] items-center font-semibold underline">Open</Link></p> : null}
+            {open ? (
+              <p className="mt-1 text-sm"><Link href={open} className="inline-flex min-h-[44px] items-center font-semibold underline">Open</Link></p>
+            ) : (
+              <p className="mt-1 text-sm"><Link href="/visits" className="inline-flex min-h-[44px] items-center font-semibold underline">Open Visits</Link></p>
+            )}
           </div>
         );
       })}

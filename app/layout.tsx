@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
@@ -28,6 +28,12 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Campus Care — FUD Clinic",
   description: "Clinic care without the long queue. Book visits, get test results, reach the campus clinic fast.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0f766e",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -17,7 +17,7 @@ export default async function ExpertsPage() {
       <h1 className="font-display text-2xl font-bold">Find a specialist</h1>
       <p className="mt-1 text-sm text-[var(--muted-foreground)]">Search by name or field, then book.</p>
       {preview ? (
-        <p role="note" className="mt-3 rounded-2xl border border-dashed border-[var(--warning-fg)] bg-[var(--warning-bg)] p-4 text-sm font-medium text-[var(--warning-fg)]">
+        <p className="mt-3 rounded-2xl border border-dashed border-[var(--warning-fg)] bg-[var(--warning-bg)] p-4 text-sm font-medium text-[var(--warning-fg)]">
           Preview mode — sample doctors below. The live directory loads from the clinic database.
         </p>
       ) : null}

@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/errors";
-import { makeReference, services, lagosDayRange, type Doctor } from "@/lib/booking";
+import { makeReference, services, type Doctor } from "@/lib/booking";
 import { SlotPicker, combineDateTime } from "@/components/SlotPicker";
+import { ConfirmDialog } from "@/components/motion/ConfirmDialog";
+import { StatusMessage } from "@/components/motion/StatusMessage";
 
 export type PatientHit = { profileId: string; full_name: string; reg_number: string | null; card_number: string | null; phone: string | null };
 export type QueueRow = { id: string; queue_number: number; status: string; patient_name: string };
@@ -30,6 +32,9 @@ export function ReceptionClient({
   const [queue, setQueue] = useState<QueueRow[]>(initialQueue);
   const [apptState, setApptState] = useState<{ patientId: string; list: ApptRow[] }>({ patientId: "", list: [] });
   const [busy, setBusy] = useState(false);
+  const [checkinBusy, setCheckinBusy] = useState(false);
+  const [queueBusyId, setQueueBusyId] = useState<string | null>(null);
+  const [pendingQueueCancel, setPendingQueueCancel] = useState<QueueRow | null>(null);
   const appts = apptState.patientId === patient?.profileId ? apptState.list : [];
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -39,16 +44,17 @@ export function ReceptionClient({
     (async () => {
       try {
         const supabase = createClient();
-        const { start, end } = lagosDayRange(date);
         const { data, error } = await supabase.rpc("booked_slots", {
           p_doctor: doctorId,
-          p_start: start,
-          p_end: end,
+          p_day: date,
         });
         if (error) throw error;
         if (!cancelled) setTakenMs(new Set(((data ?? []) as string[]).map((s) => new Date(s).getTime())));
       } catch {
-        if (!cancelled) setTakenMs(new Set());
+        if (!cancelled) {
+          setTakenMs(new Set());
+          setMsg("Could not load taken times. Check connection — slots may look free.");
+        }
       }
     })();
     return () => {
@@ -134,6 +140,8 @@ export function ReceptionClient({
 
   async function checkIn(appointmentId: string | null, docId: string | null) {
     if (!patient) return;
+    if (checkinBusy || busy) return;
+    setCheckinBusy(true);
     setMsg(null);
     setTicket(null);
     try {
@@ -157,6 +165,8 @@ export function ReceptionClient({
       await refreshQueue();
     } catch (err) {
       setMsg(friendlyError(err, "Check-in failed."));
+    } finally {
+      setCheckinBusy(false);
     }
   }
 
@@ -200,6 +210,8 @@ export function ReceptionClient({
   }
 
   async function queueAction(id: string, action: string) {
+    if (queueBusyId) return;
+    setQueueBusyId(id);
     setMsg(null);
     try {
       const supabase = createClient();
@@ -210,6 +222,9 @@ export function ReceptionClient({
       await refreshQueue();
     } catch (err) {
       setMsg(friendlyError(err, "Update failed."));
+    } finally {
+      setQueueBusyId(null);
+      setPendingQueueCancel(null);
     }
   }
 
@@ -256,18 +271,26 @@ export function ReceptionClient({
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+      <section className="print-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="font-display text-lg font-semibold">1. Find patient</h2>
-        <div className="mt-2 flex gap-2">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Reg number, card number, or name"
-            aria-label="Search patient"
-            className="h-12 min-h-[48px] flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base"
-          />
-          <button type="button" onClick={search} className="flex h-12 min-h-[48px] items-center rounded-[10px] bg-[var(--primary)] px-5 font-semibold text-[var(--primary-foreground)]">Search</button>
-        </div>
+        <form
+          className="mt-2 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            search();
+          }}
+        >
+          <label className="flex flex-1 flex-col gap-1 text-sm font-medium">
+            Search patient
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Reg number, card number, or name"
+              className="h-12 min-h-[48px] flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base"
+            />
+          </label>
+          <button type="submit" className="mt-6 flex h-12 min-h-[48px] items-center self-end rounded-[10px] bg-[var(--primary)] px-5 font-semibold text-[var(--primary-foreground)]">Search</button>
+        </form>
         <div className="mt-2 flex flex-col gap-2">
           {hits.map((h) => (
             <button
@@ -284,38 +307,41 @@ export function ReceptionClient({
         </div>
         {patient ? (
           <div className="mt-3 flex gap-2">
-            <input
-              value={cardInput}
-              onChange={(e) => setCardInput(e.target.value)}
-              placeholder="Card number, e.g. FCO/24/0042"
-              aria-label="Card number"
-              className="h-12 min-h-[48px] flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base"
-            />
-            <button type="button" onClick={issueCard} className="flex h-12 min-h-[48px] items-center rounded-[10px] border border-[var(--border)] px-4 font-semibold">Issue card</button>
+            <label className="flex flex-1 flex-col gap-1 text-sm font-medium">
+              Card number
+              <input
+                value={cardInput}
+                onChange={(e) => setCardInput(e.target.value)}
+                placeholder="Card number, e.g. FCO/24/0042"
+                className="h-12 min-h-[48px] flex-1 rounded-[10px] border border-[var(--border)] bg-[var(--background)] px-3 text-base"
+              />
+            </label>
+            <button type="button" onClick={issueCard} className="mt-6 flex h-12 min-h-[48px] items-center self-end rounded-[10px] border border-[var(--border)] px-4 font-semibold">Issue card</button>
           </div>
         ) : null}
       </section>
 
       {patient ? (
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+        <section className="print-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <h2 className="font-display text-lg font-semibold">2. Check in {patient.full_name}</h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">Confirm name and ID with the patient before tapping. Double-tap is blocked.</p>
           {appts.length > 0 ? (
             <div className="mt-2 flex flex-col gap-2">
               {appts.map((a) => (
                 <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[var(--border)] px-4 py-2.5 text-sm">
                   <span><strong>{a.service}</strong> · {new Date(a.starts_at).toLocaleString("en-GB", { weekday: "short", hour: "numeric", minute: "2-digit" })}</span>
-                  <button type="button" onClick={() => checkIn(a.id, a.doctor_id)} className="flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 font-semibold text-[var(--primary-foreground)]">Check in</button>
+                  <button type="button" onClick={() => checkIn(a.id, a.doctor_id)} disabled={checkinBusy} className="flex h-11 min-h-[44px] items-center rounded-[10px] bg-[var(--primary)] px-4 font-semibold text-[var(--primary-foreground)] disabled:opacity-60">{checkinBusy ? "Checking in…" : "Check in"}</button>
                 </div>
               ))}
             </div>
           ) : null}
-          <button type="button" onClick={() => checkIn(null, null)} className="mt-2 flex h-12 min-h-[48px] items-center justify-center rounded-[10px] border border-[var(--border)] px-6 font-semibold">
-            Check in as walk-in
+          <button type="button" onClick={() => checkIn(null, null)} disabled={checkinBusy} className="mt-2 flex h-12 min-h-[48px] items-center justify-center rounded-[10px] border border-[var(--destructive-fg)] px-6 font-semibold text-[var(--destructive-fg)] disabled:opacity-60">
+            {checkinBusy ? "Checking in…" : "Check in as walk-in (no booking)"}
           </button>
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+      <section className="print-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="font-display text-lg font-semibold">3. Book ahead{patient ? ` for ${patient.full_name}` : ""}</h2>
         <div className="mt-2 grid gap-3 md:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm font-medium">
@@ -335,19 +361,19 @@ export function ReceptionClient({
           <SlotPicker date={date} time={time} takenMs={takenMs} onDate={(v) => { setDate(v); setTime(""); setTakenMs(new Set()); }} onTime={setTime} idPrefix="reception" />
         </div>
         <button type="button" onClick={book} disabled={busy} className="mt-3 flex h-12 min-h-[48px] items-center justify-center rounded-[10px] bg-[var(--primary)] px-6 font-semibold text-[var(--primary-foreground)] disabled:opacity-60">Confirm booking</button>
-        {msg ? <p role="status" className="mt-2 text-sm font-medium">{msg}</p> : null}
+        {msg ? <div className="mt-2"><StatusMessage role="alert">{msg}</StatusMessage></div> : null}
         {ticket && patient ? (
           <div id="ticket" className="mt-3 rounded-[10px] border border-[var(--border)] bg-white p-5 text-black">
             <p className="text-lg font-bold">Campus Care — Visit Ticket</p>
-            <p className="mt-1 text-2xl font-bold">{ticket.ref}</p>
+            <p className="font-slip mt-1 text-2xl font-bold">{ticket.ref}</p>
             <p className="mt-1">{patient.full_name} · {service}</p>
             <p>{ticket.slot}</p>
-            <button type="button" onClick={() => window.print()} className="mt-3 flex h-11 min-h-[44px] items-center rounded-[10px] border border-black px-4 text-sm font-semibold print:hidden">Print ticket</button>
+            <button type="button" onClick={() => window.print()} className="print-hidden mt-3 flex h-11 min-h-[44px] items-center rounded-[10px] border border-black px-4 text-sm font-semibold">Print ticket</button>
           </div>
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+      <section className="print-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="font-display text-lg font-semibold">Today&apos;s queue ({queue.length})</h2>
         <ul className="mt-2 flex flex-col gap-2">
           {queue.map((r) => (
@@ -358,13 +384,13 @@ export function ReceptionClient({
               </div>
               {["waiting", "called", "skipped"].includes(r.status) ? (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => queueAction(r.id, "call")} aria-label={`Call number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg border border-[var(--border)] px-3 font-semibold">Call</button>
-                  <button type="button" onClick={() => queueAction(r.id, "skip")} aria-label={`Skip number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg border border-[var(--border)] px-3 font-semibold">Skip</button>
+                  <button type="button" onClick={() => queueAction(r.id, "call")} disabled={queueBusyId === r.id} aria-label={`Call number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg border border-[var(--border)] px-3 font-semibold disabled:opacity-60">Call</button>
+                  <button type="button" onClick={() => queueAction(r.id, "skip")} disabled={queueBusyId === r.id} aria-label={`Skip number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg border border-[var(--border)] px-3 font-semibold disabled:opacity-60">Skip</button>
                   {r.status === "skipped" ? (
-                    <button type="button" onClick={() => queueAction(r.id, "recall")} aria-label={`Recall number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg border border-[var(--border)] px-3 font-semibold">Recall</button>
+                    <button type="button" onClick={() => queueAction(r.id, "recall")} disabled={queueBusyId === r.id} aria-label={`Recall number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg border border-[var(--border)] px-3 font-semibold disabled:opacity-60">Recall</button>
                   ) : null}
-                  <button type="button" onClick={() => queueAction(r.id, "start")} aria-label={`Start visit for number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg bg-[var(--primary)] px-3 font-semibold text-[var(--primary-foreground)]">Start visit</button>
-                  <button type="button" onClick={() => queueAction(r.id, "cancel")} aria-label={`Cancel number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg border border-[var(--border)] px-3 font-semibold">Cancel</button>
+                  <button type="button" onClick={() => queueAction(r.id, "start")} disabled={queueBusyId === r.id} aria-label={`Start visit for number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg bg-[var(--primary)] px-3 font-semibold text-[var(--primary-foreground)] disabled:opacity-60">Start visit</button>
+                  <button type="button" onClick={() => setPendingQueueCancel(r)} disabled={queueBusyId === r.id} aria-label={`Cancel number ${r.queue_number}`} className="flex h-11 min-h-[44px] items-center rounded-lg border border-[var(--destructive-fg)] px-3 font-semibold text-[var(--destructive-fg)] disabled:opacity-60">Cancel</button>
                 </div>
               ) : null}
             </li>
@@ -372,6 +398,16 @@ export function ReceptionClient({
           {queue.length === 0 ? <li className="text-[var(--muted-foreground)]">Empty.</li> : null}
         </ul>
       </section>
+      <ConfirmDialog
+        open={pendingQueueCancel !== null}
+        onOpenChange={(o) => !o && setPendingQueueCancel(null)}
+        title="Cancel this queue entry?"
+        body={pendingQueueCancel ? `No. ${pendingQueueCancel.queue_number} · ${pendingQueueCancel.patient_name}. This removes the visit for today. This cannot be undone.` : ""}
+        confirmLabel="Yes, cancel entry"
+        busy={queueBusyId !== null}
+        busyLabel="Cancelling…"
+        onConfirm={() => pendingQueueCancel && queueAction(pendingQueueCancel.id, "cancel")}
+      />
     </div>
   );
 }

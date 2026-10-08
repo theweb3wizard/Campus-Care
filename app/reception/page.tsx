@@ -5,6 +5,7 @@ import { ReceptionClient } from "@/components/ReceptionClient";
 import { demoDoctors } from "@/lib/booking";
 import { QueryError } from "@/components/QueryError";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
+import { StaffNav, StaffGate } from "@/components/StaffNav";
 
 export const instant = false;
 
@@ -28,7 +29,7 @@ async function ReceptionContent() {
   if (!configured) {
     return (
       <>
-        <p role="note" className="rounded-2xl border border-dashed border-[var(--warning-fg)] bg-[var(--warning-bg)] p-4 text-sm font-medium text-[var(--warning-fg)]">
+        <p className="rounded-2xl border border-dashed border-[var(--warning-fg)] bg-[var(--warning-bg)] p-4 text-sm font-medium text-[var(--warning-fg)]">
           Preview mode — sample doctors and an empty queue. Connect the clinic database for live data.
         </p>
         <ReceptionClient doctors={demoDoctors} initialQueue={[]} />
@@ -36,12 +37,12 @@ async function ReceptionContent() {
     );
   }
   const user = await getSessionUser();
-  if (!user) return <p className="text-[var(--muted-foreground)]">Staff only. Log in first.</p>;
+  if (!user) return <StaffGate message="Reception is staff only. Log in first." loginNext="/reception" />;
   const supabase = await createClient();
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = (me as { role?: string } | null)?.role;
   if (!role || !["receptionist", "admin", "doctor", "nurse"].includes(role)) {
-    return <p className="text-[var(--muted-foreground)]">Reception staff only.</p>;
+    return <StaffGate message="Reception staff only. Your role cannot open it." loginNext="/reception" />;
   }
 
   const { data: docs, error: docsError } = await supabase.rpc("active_doctors");
@@ -77,7 +78,8 @@ async function ReceptionContent() {
   if (doctors.length === 0) {
     return (
       <>
-        <p className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--muted-foreground)]">
+        <StaffNav role={role} />
+        <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--muted-foreground)]">
           No active doctors. Ask an admin to add doctors before booking for patients.
         </p>
         <ReceptionClient doctors={doctors} initialQueue={queue} />
@@ -85,5 +87,12 @@ async function ReceptionContent() {
     );
   }
 
-  return <ReceptionClient doctors={doctors} initialQueue={queue} />;
+  return (
+    <>
+      <StaffNav role={role} />
+      <div className="mt-4">
+        <ReceptionClient doctors={doctors} initialQueue={queue} />
+      </div>
+    </>
+  );
 }

@@ -4,6 +4,7 @@ import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { DoctorQueue } from "@/components/DoctorQueue";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
+import { StaffNav, StaffGate } from "@/components/StaffNav";
 
 export const instant = false;
 
@@ -11,7 +12,7 @@ export default async function DoctorPage() {
   return (
     <div>
       <h1 className="font-display text-2xl font-bold">Doctor queue</h1>
-      <p className="mt-1 text-sm text-[var(--muted-foreground)]">Today&apos;s appointments in time order.</p>
+      <p className="mt-1 text-sm text-[var(--muted-foreground)]">Today&apos;s appointments in time order. Confirm first, then Complete or Cancel with care.</p>
       <div className="mt-4">
         <Suspense fallback={<InboxSkeleton />}>
           <QueueContent />
@@ -31,14 +32,14 @@ async function QueueContent() {
   }
   const user = await getSessionUser();
   if (!user) {
-    return <p className="mt-2 text-[var(--muted-foreground)]">Staff only. Log in first.</p>;
+    return <StaffGate message="Doctor queue is staff only. Log in first." loginNext="/doctor" />;
   }
 
   const supabase = await createClient();
   const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const role = (me as { role?: string } | null)?.role;
   if (!role || !["doctor", "nurse", "receptionist", "admin"].includes(role)) {
-    return <p className="mt-2 text-[var(--muted-foreground)]">Staff only.</p>;
+    return <StaffGate message="Doctor queue is staff only. Your role cannot open it." loginNext="/doctor" />;
   }
 
   const start = new Date();
@@ -71,5 +72,12 @@ async function QueueContent() {
       ((r.patient as unknown as { full_name?: string })?.full_name) ?? "Patient",
   }));
 
-  return <DoctorQueue initial={items} />;
+  return (
+    <>
+      <StaffNav role={role} />
+      <div className="mt-4">
+        <DoctorQueue initial={items} />
+      </div>
+    </>
+  );
 }

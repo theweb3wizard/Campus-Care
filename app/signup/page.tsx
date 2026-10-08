@@ -119,12 +119,13 @@ export default function SignupPage() {
       <p className="mt-1 text-[var(--muted-foreground)]">
         Students claim with Reg No. Staff join with the Staff ID admin gave them.
       </p>
-      <div role="tablist" aria-label="Account type" className="mt-4 grid grid-cols-2 gap-2">
+      <div role="radiogroup" aria-label="Account type" className="mt-4 grid grid-cols-2 gap-2">
         {(["student", "staff"] as Mode[]).map((m) => (
           <button
             key={m}
-            role="tab"
-            aria-selected={mode === m}
+            type="button"
+            role="radio"
+            aria-checked={mode === m}
             onClick={() => {
               setMode(m);
               setError(null);
