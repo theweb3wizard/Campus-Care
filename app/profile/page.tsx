@@ -7,6 +7,8 @@ import { StatusPill } from "@/components/StatusPill";
 import { InboxSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
 import { LogoutButton } from "@/components/UserMenu";
+import { StaffShell } from "@/components/StaffShell";
+import { BackButton } from "@/components/BackButton";
 import { staffGroupsFor } from "@/lib/staff";
 
 export const instant = false;
@@ -20,7 +22,10 @@ export default async function ProfilePage({
   const welcome = sp.welcome === "verify";
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold">Profile</h1>
+      <div className="flex items-center gap-2">
+        <BackButton fallback="/" label="Back" />
+        <h1 className="font-display text-2xl font-bold">Profile</h1>
+      </div>
       <Suspense fallback={<InboxSkeleton />}>
         <ProfileContent welcome={welcome} />
       </Suspense>
@@ -92,27 +97,68 @@ async function ProfileContent({ welcome }: { welcome: boolean }) {
           <strong>Not verified yet.</strong> Come to reception with your ID card once for a physical check. Booking still works before that.
         </p>
       ) : null}
-      <dl className="mt-3 grid gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-sm md:grid-cols-2">
-        <div><dt className="text-[var(--muted-foreground)]">Student ID or Staff ID</dt><dd className="font-semibold">{p.login_id}</dd></div>
-        <div><dt className="text-[var(--muted-foreground)]">Account type</dt><dd><StatusPill status={p.role} /></dd></div>
-        <div><dt className="text-[var(--muted-foreground)]">Card number</dt><dd className="font-semibold">{p.card_number ?? "To be issued at clinic — come anyway"}</dd></div>
-        <div><dt className="text-[var(--muted-foreground)]">Clinic file</dt><dd className="font-semibold">{f?.file_number ?? "Opens at first visit"}</dd></div>
-        {s ? (
-          <>
-            <div><dt className="text-[var(--muted-foreground)]">Faculty</dt><dd>{s.faculty ?? "—"}</dd></div>
-            <div><dt className="text-[var(--muted-foreground)]">Department</dt><dd>{s.department ?? "—"}</dd></div>
-          </>
-        ) : null}
-      </dl>
-      {p.role === "patient" ? null : (
-        <StaffHub role={p.role} />
+      {p.role === "patient" ? (
+        <>
+          <PatientDetails
+            loginId={p.login_id}
+            role={p.role}
+            cardNumber={p.card_number}
+            fileNumber={f?.file_number ?? null}
+            faculty={s?.faculty ?? null}
+            department={s?.department ?? null}
+          />
+          <PatientLinks />
+          <ProfileForm initial={{ id: p.id, login_id: p.login_id, role: p.role, full_name: p.full_name, card_number: p.card_number, phone: p.phone, verified: p.verified }} />
+          <div className="mt-4">
+            <LogoutButton />
+          </div>
+        </>
+      ) : (
+        <StaffShell role={p.role} userName={p.full_name}>
+          <PatientDetails
+            loginId={p.login_id}
+            role={p.role}
+            cardNumber={p.card_number}
+            fileNumber={f?.file_number ?? null}
+            faculty={s?.faculty ?? null}
+            department={s?.department ?? null}
+          />
+          <StaffHub role={p.role} />
+          <ProfileForm initial={{ id: p.id, login_id: p.login_id, role: p.role, full_name: p.full_name, card_number: p.card_number, phone: p.phone, verified: p.verified }} />
+        </StaffShell>
       )}
-      {p.role === "patient" ? <PatientLinks /> : null}
-      <ProfileForm initial={{ id: p.id, login_id: p.login_id, role: p.role, full_name: p.full_name, card_number: p.card_number, phone: p.phone, verified: p.verified }} />
-      <div className="mt-4">
-        <LogoutButton />
-      </div>
     </>
+  );
+}
+
+function PatientDetails({
+  loginId,
+  role,
+  cardNumber,
+  fileNumber,
+  faculty,
+  department,
+}: {
+  loginId: string;
+  role: string;
+  cardNumber: string | null;
+  fileNumber: string | null;
+  faculty: string | null;
+  department: string | null;
+}) {
+  return (
+    <dl className="mt-3 grid gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-sm md:grid-cols-2">
+      <div><dt className="text-[var(--muted-foreground)]">Student ID or Staff ID</dt><dd className="font-semibold">{loginId}</dd></div>
+      <div><dt className="text-[var(--muted-foreground)]">Account type</dt><dd><StatusPill status={role} /></dd></div>
+      <div><dt className="text-[var(--muted-foreground)]">Card number</dt><dd className="font-semibold">{cardNumber ?? "To be issued at clinic — come anyway"}</dd></div>
+      <div><dt className="text-[var(--muted-foreground)]">Clinic file</dt><dd className="font-semibold">{fileNumber ?? "Opens at first visit"}</dd></div>
+      {faculty ?? department ? (
+        <>
+          <div><dt className="text-[var(--muted-foreground)]">Faculty</dt><dd>{faculty ?? "—"}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Department</dt><dd>{department ?? "—"}</dd></div>
+        </>
+      ) : null}
+    </dl>
   );
 }
 

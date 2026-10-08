@@ -3,8 +3,9 @@ import Link from "next/link";
 import { Phone } from "lucide-react";
 import { ClinicLogo } from "./ClinicLogo";
 import { BottomNav } from "./BottomNav";
+import { DesktopNav } from "./DesktopNav";
 import { UserMenu } from "./UserMenu";
-import { brand, navItems } from "@/lib/brand";
+import { brand } from "@/lib/brand";
 import { getSessionUser, createClient } from "@/lib/supabase/server";
 
 async function HeaderSession() {
@@ -53,27 +54,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex min-h-[44px] items-center whitespace-nowrap rounded-[10px] px-3 text-sm font-semibold text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <DesktopNav />
 
           <div className="flex shrink-0 items-center gap-2">
             <Suspense
               fallback={
-                <Link
-                  href="/login"
-                  className="flex h-11 min-h-[44px] items-center whitespace-nowrap rounded-full border border-[var(--border)] px-4 text-sm font-semibold sm:h-12 sm:px-5 sm:text-base"
+                <span
+                  aria-hidden
+                  className="flex h-11 min-h-[44px] items-center rounded-full border border-[var(--border)] px-4 sm:h-12 sm:px-5"
                 >
-                  Log in
-                </Link>
+                  <span className="block h-4 w-14 rounded-md bg-[var(--border)]" />
+                </span>
               }
             >
               <HeaderSession />

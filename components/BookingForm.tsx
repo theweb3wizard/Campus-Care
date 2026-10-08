@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/errors";
 import { makeReference, services, type Doctor } from "@/lib/booking";
 import { StatusMessage, Spinner } from "@/components/motion/StatusMessage";
+import { useToast } from "@/components/motion/Toaster";
+import { SuccessDialog } from "@/components/motion/SuccessDialog";
 import { StateBlock } from "@/components/StateBlock";
 import { SlotPicker, combineDateTime } from "@/components/SlotPicker";
 
@@ -38,6 +40,9 @@ export function BookingForm({
   const [ref, setRef] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successDetail, setSuccessDetail] = useState("");
+  const { toast } = useToast();
 
   const filtered = doctors.filter((d) =>
     service === "General" ? true : d.specialty === service || d.specialty === "General"
@@ -165,6 +170,9 @@ export function BookingForm({
       setRef(finalReference);
       setMsgRole("status");
       setMsg(`Done. ${service} with ${doctors.find((d) => d.id === doctorId)?.full_name ?? "doctor"} on ${date} at ${time}. Reference ${finalReference}.`);
+      setSuccessDetail(`${service} with ${doctors.find((d) => d.id === doctorId)?.full_name ?? "doctor"} on ${date} at ${time}. Reference ${finalReference}.`);
+      setSuccessOpen(true);
+      toast({ kind: "success", title: "Booking confirmed", body: `Reference ${finalReference}. Show it at reception.` });
       setTakenMs((s) => new Set(s).add(starts.getTime()));
       // NOTE (DB mapping): notifications inserts are staff-only per 0005_security.sql, so a patient-side
       // booking alert would fail RLS. Frontend no longer calls notifyUser here to avoid a false bell promise.
@@ -294,6 +302,14 @@ export function BookingForm({
           </div>
         </div>
       ) : null}
+      <SuccessDialog
+        open={successOpen}
+        onOpenChange={setSuccessOpen}
+        title="Booking confirmed"
+        body={successDetail || "Show your ticket at reception when you arrive."}
+        actionLabel="Open Visits"
+        actionHref="/visits"
+      />
     </div>
   );
 }

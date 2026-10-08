@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { friendlyError } from "@/lib/errors";
 import { emergencyPriorities } from "@/lib/special";
 import { StatusMessage, Spinner } from "@/components/motion/StatusMessage";
+import { useToast } from "@/components/motion/Toaster";
+import { SuccessDialog } from "@/components/motion/SuccessDialog";
 
 export function EmergencyForm() {
   const [name, setName] = useState("");
@@ -17,6 +19,8 @@ export function EmergencyForm() {
   const [offline, setOffline] = useState(false);
   const [loading, setLoading] = useState(false);
   const [phoneLoaded, setPhoneLoaded] = useState(false);
+  const [sentOpen, setSentOpen] = useState(false);
+  const { toast } = useToast();
 
   // Clinic phone comes from settings (admin-editable). No hardcoded number anywhere.
   useEffect(() => {
@@ -79,6 +83,8 @@ export function EmergencyForm() {
       setDescription("");
       setPriority("Urgent");
       setMsg("Received. Go to Clinic Casualty now — staff have been alerted. If no one calls in 10 minutes, come in person.");
+      setSentOpen(true);
+      toast({ kind: "success", title: "Emergency sent", body: "Staff have been alerted. Go to Casualty now." });
     } catch (err) {
       if (err instanceof TypeError) {
         setOffline(true);
@@ -139,6 +145,14 @@ export function EmergencyForm() {
           {loading ? (<><Spinner /> Sending…</>) : "Send emergency request"}
         </button>
       </form>
+      <SuccessDialog
+        open={sentOpen}
+        onOpenChange={setSentOpen}
+        title="Help is on the way"
+        body="Stay where you are and keep your phone close. Go to Clinic Casualty now if you can."
+        actionLabel="Back home"
+        actionHref="/"
+      />
     </div>
   );
 }

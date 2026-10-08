@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { demoDoctors, services } from "@/lib/booking";
 import { BookingForm } from "@/components/BookingForm";
+import { BackButton } from "@/components/BackButton";
 import { SlotsSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
 
@@ -22,7 +23,10 @@ export default async function BookPage({
     : "General";
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="font-display text-2xl font-bold">Book appointment</h1>
+      <div className="flex items-center gap-2">
+        <BackButton fallback="/" label="Back" />
+        <h1 className="font-display text-2xl font-bold">Book appointment</h1>
+      </div>
       <p className="text-sm text-[var(--muted-foreground)]">Clinic hours Mon to Sat, 09:00 to 15:40. Closed Sundays. Pick any day up to 60 days ahead.</p>
       {preview ? (
         <p className="rounded-2xl border border-dashed border-[var(--warning-fg)] bg-[var(--warning-bg)] p-4 text-sm font-medium text-[var(--warning-fg)]">

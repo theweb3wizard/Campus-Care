@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { normalizeId } from "@/lib/identity";
 import { StatusMessage, Spinner } from "@/components/motion/StatusMessage";
+import { useToast } from "@/components/motion/Toaster";
+import { SuccessDialog } from "@/components/motion/SuccessDialog";
 import { friendlyError } from "@/lib/errors";
 
 type Mode = "student" | "staff";
@@ -19,6 +21,9 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [doneOpen, setDoneOpen] = useState(false);
+  const [doneNext, setDoneNext] = useState("/profile");
+  const { toast } = useToast();
   const errorRef = useRef<HTMLDivElement | null>(null);
 
   function fail(message: string) {
@@ -86,7 +91,14 @@ export default function SignupPage() {
           await supabase.auth.signOut();
           throw new Error(`${res.error ?? "Signup failed. See reception."} You can try again.`);
         }
-        router.push("verified" in res && res.verified === false ? "/profile?welcome=verify" : "/profile");
+        const studentNext = "verified" in res && res.verified === false ? "/profile?welcome=verify" : "/profile";
+        setDoneNext(studentNext);
+        toast({ kind: "success", title: "Account created", body: "Welcome to Campus Care." });
+        setDoneOpen(true);
+        window.setTimeout(() => {
+          router.push(studentNext);
+          router.refresh();
+        }, 1200);
       } else {
         const { error: signErr } = await supabase.auth.signUp({
           email: cleanEmail,
@@ -101,7 +113,13 @@ export default function SignupPage() {
           await supabase.auth.signOut();
           throw new Error(res.error ?? "Staff signup failed.");
         }
-        router.push("/profile");
+        setDoneNext("/profile");
+        toast({ kind: "success", title: "Staff account ready", body: "You are logged in." });
+        setDoneOpen(true);
+        window.setTimeout(() => {
+          router.push("/profile");
+          router.refresh();
+        }, 1200);
       }
       router.refresh();
     } catch (err) {
@@ -182,6 +200,17 @@ export default function SignupPage() {
           Have an account? <Link href="/login" className="font-semibold underline">Log in</Link>
         </p>
       </form>
+      <SuccessDialog
+        open={doneOpen}
+        onOpenChange={setDoneOpen}
+        title={mode === "student" ? "Account created" : "Staff account ready"}
+        body="You are logged in. Taking you to your profile."
+        actionLabel="Go now"
+        onAction={() => {
+          router.push(doneNext);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

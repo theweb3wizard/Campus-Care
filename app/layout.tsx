@@ -3,6 +3,7 @@ import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/AppShell";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
+import { ToasterProvider } from "@/components/motion/Toaster";
 
 const publicSans = Public_Sans({
   variable: "--font-sans",
@@ -41,7 +42,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${publicSans.variable} ${archivo.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SmoothScroll>
-          <AppShell>{children}</AppShell>
+          <ToasterProvider>
+            <AppShell>{children}</AppShell>
+          </ToasterProvider>
         </SmoothScroll>
       </body>
     </html>

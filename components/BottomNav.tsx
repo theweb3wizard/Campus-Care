@@ -2,9 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CalendarPlus, FileText, FlaskConical, House, UserRound } from "lucide-react";
 import { navItems } from "@/lib/brand";
 
-/** Mobile bottom nav with active-tab state. */
+const icons: Record<string, typeof House> = {
+  "/": House,
+  "/book": CalendarPlus,
+  "/visits": FileText,
+  "/tests": FlaskConical,
+  "/profile": UserRound,
+};
+
+/** Mobile bottom nav with active-tab state and icons. */
 export function BottomNav() {
   const pathname = usePathname();
   return (
@@ -15,18 +24,22 @@ export function BottomNav() {
       <ul className="mx-auto grid w-full max-w-5xl grid-cols-5">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const Icon = icons[item.href] ?? House;
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-sm font-medium ${
+                className={`flex min-h-[60px] flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${
                   active
-                    ? "font-semibold text-[var(--primary)] underline underline-offset-4"
+                    ? "font-semibold text-[var(--primary)]"
                     : "text-[var(--muted-foreground)]"
                 }`}
               >
-                {item.label}
+                <Icon size={22} aria-hidden strokeWidth={active ? 2.5 : 2} />
+                <span className={active ? "underline underline-offset-4" : undefined}>
+                  {item.label}
+                </span>
               </Link>
             </li>
           );

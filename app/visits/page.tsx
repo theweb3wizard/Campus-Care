@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import Link from "next/link";
 import { createClient, getSessionUser } from "@/lib/supabase/server";
 import { VisitsList } from "@/components/VisitsList";
+import { BackButton } from "@/components/BackButton";
 import { StatusPill } from "@/components/StatusPill";
 import { VisitsSkeleton } from "@/components/motion/Skeletons";
 import { QueryError } from "@/components/QueryError";
@@ -12,7 +13,10 @@ export const instant = false;
 export default async function VisitsPage() {
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold">Visits</h1>
+      <div className="flex items-center gap-2">
+        <BackButton fallback="/" label="Back" />
+        <h1 className="font-display text-2xl font-bold">Visits</h1>
+      </div>
       <div className="mt-4">
         <Suspense fallback={<VisitsSkeleton />}>
           <VisitsContent />

@@ -6,6 +6,7 @@ import { canViewResult, type TestOrder } from "@/lib/clinical";
 import { StatusPill } from "@/components/StatusPill";
 import { TestsSkeleton } from "@/components/motion/Skeletons";
 import { StateBlock } from "@/components/StateBlock";
+import { BackButton } from "@/components/BackButton";
 import { QueryError } from "@/components/QueryError";
 
 export const instant = false;
@@ -13,7 +14,10 @@ export const instant = false;
 export default async function TestsPage() {
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold">Tests</h1>
+      <div className="flex items-center gap-2">
+        <BackButton fallback="/" label="Back" />
+        <h1 className="font-display text-2xl font-bold">Tests</h1>
+      </div>
       <div className="mt-4">
         <Suspense fallback={<TestsSkeleton />}>
           <TestsContent />
